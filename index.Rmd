@@ -1,0 +1,123 @@
+---
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    theme: bootstrap
+    logo: logo.svg
+    source_code: "https://github.com/hesscl/cl-spatial-epi"
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(sqldf)
+library(ggthemes)
+library(RColorBrewer)
+library(viridis)
+library(sp)
+library(spdplyr)
+library(rgdal)
+library(rgeos)
+library(INLA)
+library(highcharter)
+
+
+#load 2012-2016 ACS data (2016 tracts same as 2010 for KC)
+census <- read_csv(file = "./input/nhgis0051_ds225_20165_2016_tract.csv")
+
+#determine config (dev or github)
+if(file.exists("../data/cl/craigslistDB.sqlite")){
+  DB <- dbConnect(SQLite(), dbname="../data/cl/craigslistDB.sqlite")
+  cl <- tbl(DB, "clean") #clean listing table
+  
+  #pull GEOIDs in KC, WA
+  kc_filter <- tbl(DB, "tract") %>% filter(STATEFP10 == "53", COUNTYFP10 == "033") %>% pull(GISJOIN) 
+  
+  #compute tract aggregates for CL listing count
+  tractCl <- cl %>%
+    filter(!is.na(GISJOIN), !is.na(cleanBeds), !is.na(cleanRent), !is.na(cleanSqft)) %>% #only listings with valid Bed/Rent
+    filter(GISJOIN %in% kc_filter) %>% #filter to KC only (db has metro area)
+    dplyr::select(listingMoYr, GISJOIN, seattle, matchAddress, matchAddress2, matchType, cleanBeds, cleanRent) %>% #SELECT these columns
+    collect %>% #bring db query into memory
+    filter(!grepl("Google", matchType)) %>% #no Google geocodes, only Smartystreets (precise to Zip9)
+    distinct(matchAddress, matchAddress2, cleanBeds, cleanRent, cleanSqft, .keep_all = T) %>% #dedupe unique address-bed-rent combos
+    group_by(GISJOIN) %>% #group listings by tract
+    summarize(nListings = n(),
+              medCL = median(cleanRent),
+              med0B = median(cleanRent[cleanBeds==0]),
+              med1B = median(cleanRent[cleanBeds==1]),
+              med2B = median(cleanRent[cleanBeds==2]),
+              med3Plus = median(cleanRent[cleanBeds>2]),
+              seattle = max(seattle))
+  dbDisconnect(DB)
+} else{
+  tract <- read_csv("./input/tractCl.csv")
+}
+
+#read in tract shapefile for king county
+kc_shp <- readOGR(dsn = "./input/KCTract2010/KCTract2010.shp",
+                  layer = "KCTract2010",
+                  GDAL1_integer64_policy = TRUE,
+                  stringsAsFactors = F)
+
+#merge tables together, allow missing values for tracts with no listings (i.e. no value in tract)
+test <- left_join(census, tractCl)
+
+#compute some new vars/mutate sensibly named ACS vars
+test <- test %>%
+  mutate(nListings = ifelse(is.na(nListings), 0, nListings), #if NA then 0, since no listings were observed
+         nHU = AF7NE001,
+         GISJOIN = as.character(GISJOIN)) %>%
+  mutate(tpop = AF2LE001,
+         tnhw = AF2UE003,
+         tnhb = AF2UE004,
+         tnha = AF2UE006,
+         thsp = AF2UE012,
+         tnho =  AF2UE005+AF2UE007+AF2UE008+AF2UE009,
+         nvachu = AF7OE003,
+         nforrent = AF7ZM002,
+         nocc =  AF7OE002,
+         ppov = (AF43E002+AF43E003)/AF43E001,
+         nownocc = AF7PE002,
+         medGRentACS = AF89M001,
+         medStrYr = AF8IE001,
+         medVal = AF9LE001/1000,
+         medHHInc = AF49M001/1000) %>%
+  mutate(pnhw = tnhw/tpop,
+         pnhb = tnhb/tpop,
+         pnho = tnho/tpop,
+         pnha = tnha/tpop,
+         phsp = thsp/tpop,
+         pvac = nvachu/nHU,
+         pforrent = ifelse(nvachu == 0, 0, AF7ZM002/nvachu),
+         pownocc = nownocc/nocc,
+         pblt14lat = AF8HE002/nHU)
+
+```
+
+Home {data-icon="fa-home"}
+=====================================
+
+Row
+-------------------------------------
+
+### Welcome!
+
+This website provides the latest information from the UW team's rental market database. 
+
+Contact Chris Hess at [hesscl@uw.edu](mailto://hesscl@uw.edu) for more information about this report.
+
+Row
+-------------------------------------
+
+### 90-day summary for Seattle listings
+
+```{r sea.90day}
+
+hchart(density(test$nListings), type = "area") %>%
+  hc_yAxis(title = list(text = "Density")) %>%
+  hc_xAxis(title = list(text = "N Listings in Tract")) %>%
+  #hc_tooltip(pointFormat = "<b>{series.name} Bedroom Units</b> <br> Rent: {point.y:%.0f} <br> N Listings: {point.n}") %>%
+  hc_exporting(enabled = TRUE)
+              
+```
+

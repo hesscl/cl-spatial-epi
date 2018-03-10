@@ -1,0 +1,825 @@
+--------------------------------------------------------------------------------
+Codebook for NHGIS data file 'nhgis0051_ds225_20165_2016_tract'
+--------------------------------------------------------------------------------
+ 
+Contents
+    - Data Summary
+    - Data Dictionary
+    - Citation and Use
+ 
+Additional documentation on NHGIS data sources is available at: 
+    https://www.nhgis.org/documentation/tabular-data 
+ 
+--------------------------------------------------------------------------------
+Data Summary
+--------------------------------------------------------------------------------
+ 
+Year:             2012-2016
+Geographic level: Census Tract (by State--County)
+Dataset:          2016 American Community Survey: 5-Year Data [2012-2016, Block Groups & Larger Areas]
+   NHGIS code:    2012_2016_ACS5a
+   NHGIS ID:      ds225
+Breakdown(s):     Geographic Subarea:
+                     Total area (00)
+Data type(s):     (E) Estimates
+                  (M) Margins of error
+ 
+Tables:
+ 
+1. Total Population
+   Universe:    Total population
+   Source code: B01003
+   NHGIS code:  AF2L
+ 
+2. Hispanic or Latino Origin by Race
+   Universe:    Total population
+   Source code: B03002
+   NHGIS code:  AF2U
+ 
+3. Household Type (Including Living Alone)
+   Universe:    Households
+   Source code: B11001
+   NHGIS code:  AF3J
+ 
+4. Educational Attainment for the Population 25 Years and Over
+   Universe:    Population 25 years and over
+   Source code: B15003
+   NHGIS code:  AF4O
+ 
+5. Ratio of Income to Poverty Level in the Past 12 Months
+   Universe:    Population for whom poverty status is determined
+   Source code: C17002
+   NHGIS code:  AF43
+ 
+6. Median Household Income in the Past 12 Months (in 2016 Inflation-Adjusted Dollars)
+   Universe:    Households
+   Source code: B19013
+   NHGIS code:  AF49
+ 
+7. Per Capita Income in the Past 12 Months (in 2016 Inflation-Adjusted Dollars)
+   Universe:    Total population
+   Source code: B19301
+   NHGIS code:  AF6A
+ 
+8. Housing Units
+   Universe:    Housing units
+   Source code: B25001
+   NHGIS code:  AF7N
+ 
+9. Occupancy Status
+   Universe:    Housing units
+   Source code: B25002
+   NHGIS code:  AF7O
+ 
+10. Tenure
+    Universe:    Occupied housing units
+    Source code: B25003
+    NHGIS code:  AF7P
+ 
+11. Vacancy Status
+    Universe:    Vacant housing units
+    Source code: B25004
+    NHGIS code:  AF7Z
+ 
+12. Units in Structure
+    Universe:    Housing units
+    Source code: B25024
+    NHGIS code:  AF8E
+ 
+13. Year Structure Built
+    Universe:    Housing units
+    Source code: B25034
+    NHGIS code:  AF8H
+ 
+14. Median Year Structure Built
+    Universe:    Housing units
+    Source code: B25035
+    NHGIS code:  AF8I
+ 
+15. Median Gross Rent (Dollars)
+    Universe:    Renter-occupied housing units paying cash rent
+    Source code: B25064
+    NHGIS code:  AF89
+ 
+16. Gross Rent as a Percentage of Household Income in the Past 12 Months
+    Universe:    Renter-occupied housing units
+    Source code: B25070
+    NHGIS code:  AF9F
+ 
+17. Household Income by Gross Rent as a Percentage of Household Income in the Past 12 Months
+    Universe:    Renter-occupied housing units
+    Source code: B25074
+    NHGIS code:  AF9I
+ 
+18. Value
+    Universe:    Owner-occupied housing units
+    Source code: B25075
+    NHGIS code:  AF9J
+ 
+19. Median Value (Dollars)
+    Universe:    Owner-occupied housing units
+    Source code: B25077
+    NHGIS code:  AF9L
+ 
+--------------------------------------------------------------------------------
+Data Dictionary
+--------------------------------------------------------------------------------
+ 
+Context Fields 
+        GISJOIN:     GIS Join Match Code
+        YEAR:        Data File Year
+        REGIONA:     Region Code
+        DIVISIONA:   Division Code
+        STATE:       State Name
+        STATEA:      State Code
+        COUNTY:      County Name
+        COUNTYA:     County Code
+        COUSUBA:     County Subdivision Code
+        PLACEA:      Place Code
+        TRACTA:      Census Tract Code
+        BLKGRPA:     Block Group Code
+        CONCITA:     Consolidated City Code
+        AIANHHA:     American Indian Area/Alaska Native Area/Hawaiian Home Land Code
+        RES_ONLYA:   American Indian Area/Alaska Native Area (Reservation or Statistical Entity Only) Code
+        TRUSTA:      American Indian Area (Off-Reservation Trust Land Only)/Hawaiian Home Land Code
+        AITSCEA:     Tribal Subdivision/Remainder Code
+        ANRCA:       Alaska Native Regional Corporation Code
+        CBSAA:       Metropolitan Statistical Area/Micropolitan Statistical Area Code
+        CSAA:        Combined Statistical Area Code
+        METDIVA:     Metropolitan Division Code
+        NECTAA:      New England City and Town Area Code
+        CNECTAA:     Combined New England City and Town Area Code
+        NECTADIVA:   New England City and Town Area Division Code
+        UAA:         Urban Area Code
+        CDCURRA:     Congressional District (2017-2019, 115th Congress) Code
+        SLDUA:       State Legislative District (Upper Chamber) Code
+        SLDLA:       State Legislative District (Lower Chamber) Code
+        ZCTA5A:      5-Digit ZIP Code Tabulation Area Code
+        SUBMCDA:     Subminor Civil Division Code
+        SDELMA:      School District (Elementary)/Remainder Code
+        SDSECA:      School District (Secondary)/Remainder Code
+        SDUNIA:      School District (Unified)/Remainder Code
+        PUMA5A:      Public Use Microdata Sample Area (PUMA) Code
+        BTTRA:       Tribal Census Tract Code
+        BTBGA:       Tribal Block Group Code
+ 
+Data Type (E):
+    Estimates
+ 
+        NAME_E:      Area Name
+ 
+    Table 1:     Total Population
+    Universe:    Total population
+    Source code: B01003
+    NHGIS code:  AF2L
+        AF2LE001:    Total
+ 
+    Table 2:     Hispanic or Latino Origin by Race
+    Universe:    Total population
+    Source code: B03002
+    NHGIS code:  AF2U
+        AF2UE001:    Total
+        AF2UE002:    Not Hispanic or Latino
+        AF2UE003:    Not Hispanic or Latino: White alone
+        AF2UE004:    Not Hispanic or Latino: Black or African American alone
+        AF2UE005:    Not Hispanic or Latino: American Indian and Alaska Native alone
+        AF2UE006:    Not Hispanic or Latino: Asian alone
+        AF2UE007:    Not Hispanic or Latino: Native Hawaiian and Other Pacific Islander alone
+        AF2UE008:    Not Hispanic or Latino: Some other race alone
+        AF2UE009:    Not Hispanic or Latino: Two or more races
+        AF2UE010:    Not Hispanic or Latino: Two or more races: Two races including Some other race
+        AF2UE011:    Not Hispanic or Latino: Two or more races: Two races excluding Some other race, and three or more races
+        AF2UE012:    Hispanic or Latino
+        AF2UE013:    Hispanic or Latino: White alone
+        AF2UE014:    Hispanic or Latino: Black or African American alone
+        AF2UE015:    Hispanic or Latino: American Indian and Alaska Native alone
+        AF2UE016:    Hispanic or Latino: Asian alone
+        AF2UE017:    Hispanic or Latino: Native Hawaiian and Other Pacific Islander alone
+        AF2UE018:    Hispanic or Latino: Some other race alone
+        AF2UE019:    Hispanic or Latino: Two or more races
+        AF2UE020:    Hispanic or Latino: Two or more races: Two races including Some other race
+        AF2UE021:    Hispanic or Latino: Two or more races: Two races excluding Some other race, and three or more races
+ 
+    Table 3:     Household Type (Including Living Alone)
+    Universe:    Households
+    Source code: B11001
+    NHGIS code:  AF3J
+        AF3JE001:    Total
+        AF3JE002:    Family households
+        AF3JE003:    Family households: Married-couple family
+        AF3JE004:    Family households: Other family
+        AF3JE005:    Family households: Other family: Male householder, no wife present
+        AF3JE006:    Family households: Other family: Female householder, no husband present
+        AF3JE007:    Nonfamily households
+        AF3JE008:    Nonfamily households: Householder living alone
+        AF3JE009:    Nonfamily households: Householder not living alone
+ 
+    Table 4:     Educational Attainment for the Population 25 Years and Over
+    Universe:    Population 25 years and over
+    Source code: B15003
+    NHGIS code:  AF4O
+        AF4OE001:    Total
+        AF4OE002:    No schooling completed
+        AF4OE003:    Nursery school
+        AF4OE004:    Kindergarten
+        AF4OE005:    1st grade
+        AF4OE006:    2nd grade
+        AF4OE007:    3rd grade
+        AF4OE008:    4th grade
+        AF4OE009:    5th grade
+        AF4OE010:    6th grade
+        AF4OE011:    7th grade
+        AF4OE012:    8th grade
+        AF4OE013:    9th grade
+        AF4OE014:    10th grade
+        AF4OE015:    11th grade
+        AF4OE016:    12th grade, no diploma
+        AF4OE017:    Regular high school diploma
+        AF4OE018:    GED or alternative credential
+        AF4OE019:    Some college, less than 1 year
+        AF4OE020:    Some college, 1 or more years, no degree
+        AF4OE021:    Associate's degree
+        AF4OE022:    Bachelor's degree
+        AF4OE023:    Master's degree
+        AF4OE024:    Professional school degree
+        AF4OE025:    Doctorate degree
+ 
+    Table 5:     Ratio of Income to Poverty Level in the Past 12 Months
+    Universe:    Population for whom poverty status is determined
+    Source code: C17002
+    NHGIS code:  AF43
+        AF43E001:    Total
+        AF43E002:    Under .50
+        AF43E003:    .50 to .99
+        AF43E004:    1.00 to 1.24
+        AF43E005:    1.25 to 1.49
+        AF43E006:    1.50 to 1.84
+        AF43E007:    1.85 to 1.99
+        AF43E008:    2.00 and over
+ 
+    Table 6:     Median Household Income in the Past 12 Months (in 2016 Inflation-Adjusted Dollars)
+    Universe:    Households
+    Source code: B19013
+    NHGIS code:  AF49
+        AF49E001:    Median household income in the past 12 months (in 2016 inflation-adjusted dollars)
+ 
+    Table 7:     Per Capita Income in the Past 12 Months (in 2016 Inflation-Adjusted Dollars)
+    Universe:    Total population
+    Source code: B19301
+    NHGIS code:  AF6A
+        AF6AE001:    Per capita income in the past 12 months (in 2016 inflation-adjusted dollars)
+ 
+    Table 8:     Housing Units
+    Universe:    Housing units
+    Source code: B25001
+    NHGIS code:  AF7N
+        AF7NE001:    Total
+ 
+    Table 9:     Occupancy Status
+    Universe:    Housing units
+    Source code: B25002
+    NHGIS code:  AF7O
+        AF7OE001:    Total
+        AF7OE002:    Occupied
+        AF7OE003:    Vacant
+ 
+    Table 10:    Tenure
+    Universe:    Occupied housing units
+    Source code: B25003
+    NHGIS code:  AF7P
+        AF7PE001:    Total
+        AF7PE002:    Owner occupied
+        AF7PE003:    Renter occupied
+ 
+    Table 11:    Vacancy Status
+    Universe:    Vacant housing units
+    Source code: B25004
+    NHGIS code:  AF7Z
+        AF7ZE001:    Total
+        AF7ZE002:    For rent
+        AF7ZE003:    Rented, not occupied
+        AF7ZE004:    For sale only
+        AF7ZE005:    Sold, not occupied
+        AF7ZE006:    For seasonal, recreational, or occasional use
+        AF7ZE007:    For migrant workers
+        AF7ZE008:    Other vacant
+ 
+    Table 12:    Units in Structure
+    Universe:    Housing units
+    Source code: B25024
+    NHGIS code:  AF8E
+        AF8EE001:    Total
+        AF8EE002:    1, detached
+        AF8EE003:    1, attached
+        AF8EE004:    2
+        AF8EE005:    3 or 4
+        AF8EE006:    5 to 9
+        AF8EE007:    10 to 19
+        AF8EE008:    20 to 49
+        AF8EE009:    50 or more
+        AF8EE010:    Mobile home
+        AF8EE011:    Boat, RV, van, etc.
+ 
+    Table 13:    Year Structure Built
+    Universe:    Housing units
+    Source code: B25034
+    NHGIS code:  AF8H
+        AF8HE001:    Total
+        AF8HE002:    Built 2014 or later
+        AF8HE003:    Built 2010 to 2013
+        AF8HE004:    Built 2000 to 2009
+        AF8HE005:    Built 1990 to 1999
+        AF8HE006:    Built 1980 to 1989
+        AF8HE007:    Built 1970 to 1979
+        AF8HE008:    Built 1960 to 1969
+        AF8HE009:    Built 1950 to 1959
+        AF8HE010:    Built 1940 to 1949
+        AF8HE011:    Built 1939 or earlier
+ 
+    Table 14:    Median Year Structure Built
+    Universe:    Housing units
+    Source code: B25035
+    NHGIS code:  AF8I
+        AF8IE001:    Median year structure built
+ 
+    Table 15:    Median Gross Rent (Dollars)
+    Universe:    Renter-occupied housing units paying cash rent
+    Source code: B25064
+    NHGIS code:  AF89
+        AF89E001:    Median gross rent
+ 
+    Table 16:    Gross Rent as a Percentage of Household Income in the Past 12 Months
+    Universe:    Renter-occupied housing units
+    Source code: B25070
+    NHGIS code:  AF9F
+        AF9FE001:    Total
+        AF9FE002:    Less than 10.0 percent
+        AF9FE003:    10.0 to 14.9 percent
+        AF9FE004:    15.0 to 19.9 percent
+        AF9FE005:    20.0 to 24.9 percent
+        AF9FE006:    25.0 to 29.9 percent
+        AF9FE007:    30.0 to 34.9 percent
+        AF9FE008:    35.0 to 39.9 percent
+        AF9FE009:    40.0 to 49.9 percent
+        AF9FE010:    50.0 percent or more
+        AF9FE011:    Not computed
+ 
+    Table 17:    Household Income by Gross Rent as a Percentage of Household Income in the Past 12 Months
+    Universe:    Renter-occupied housing units
+    Source code: B25074
+    NHGIS code:  AF9I
+        AF9IE001:    Total
+        AF9IE002:    Less than $10,000
+        AF9IE003:    Less than $10,000: Less than 20.0 percent
+        AF9IE004:    Less than $10,000: 20.0 to 24.9 percent
+        AF9IE005:    Less than $10,000: 25.0 to 29.9 percent
+        AF9IE006:    Less than $10,000: 30.0 to 34.9 percent
+        AF9IE007:    Less than $10,000: 35.0 to 39.9 percent
+        AF9IE008:    Less than $10,000: 40.0 to 49.9 percent
+        AF9IE009:    Less than $10,000: 50.0 percent or more
+        AF9IE010:    Less than $10,000: Not computed
+        AF9IE011:    $10,000 to $19,999
+        AF9IE012:    $10,000 to $19,999: Less than 20.0 percent
+        AF9IE013:    $10,000 to $19,999: 20.0 to 24.9 percent
+        AF9IE014:    $10,000 to $19,999: 25.0 to 29.9 percent
+        AF9IE015:    $10,000 to $19,999: 30.0 to 34.9 percent
+        AF9IE016:    $10,000 to $19,999: 35.0 to 39.9 percent
+        AF9IE017:    $10,000 to $19,999: 40.0 to 49.9 percent
+        AF9IE018:    $10,000 to $19,999: 50.0 percent or more
+        AF9IE019:    $10,000 to $19,999: Not computed
+        AF9IE020:    $20,000 to $34,999
+        AF9IE021:    $20,000 to $34,999: Less than 20.0 percent
+        AF9IE022:    $20,000 to $34,999: 20.0 to 24.9 percent
+        AF9IE023:    $20,000 to $34,999: 25.0 to 29.9 percent
+        AF9IE024:    $20,000 to $34,999: 30.0 to 34.9 percent
+        AF9IE025:    $20,000 to $34,999: 35.0 to 39.9 percent
+        AF9IE026:    $20,000 to $34,999: 40.0 to 49.9 percent
+        AF9IE027:    $20,000 to $34,999: 50.0 percent or more
+        AF9IE028:    $20,000 to $34,999: Not computed
+        AF9IE029:    $35,000 to $49,999
+        AF9IE030:    $35,000 to $49,999: Less than 20.0 percent
+        AF9IE031:    $35,000 to $49,999: 20.0 to 24.9 percent
+        AF9IE032:    $35,000 to $49,999: 25.0 to 29.9 percent
+        AF9IE033:    $35,000 to $49,999: 30.0 to 34.9 percent
+        AF9IE034:    $35,000 to $49,999: 35.0 to 39.9 percent
+        AF9IE035:    $35,000 to $49,999: 40.0 to 49.9 percent
+        AF9IE036:    $35,000 to $49,999: 50.0 percent or more
+        AF9IE037:    $35,000 to $49,999: Not computed
+        AF9IE038:    $50,000 to $74,999
+        AF9IE039:    $50,000 to $74,999: Less than 20.0 percent
+        AF9IE040:    $50,000 to $74,999: 20.0 to 24.9 percent
+        AF9IE041:    $50,000 to $74,999: 25.0 to 29.9 percent
+        AF9IE042:    $50,000 to $74,999: 30.0 to 34.9 percent
+        AF9IE043:    $50,000 to $74,999: 35.0 to 39.9 percent
+        AF9IE044:    $50,000 to $74,999: 40.0 to 49.9 percent
+        AF9IE045:    $50,000 to $74,999: 50.0 percent or more
+        AF9IE046:    $50,000 to $74,999: Not computed
+        AF9IE047:    $75,000 to $99,999
+        AF9IE048:    $75,000 to $99,999: Less than 20.0 percent
+        AF9IE049:    $75,000 to $99,999: 20.0 to 24.9 percent
+        AF9IE050:    $75,000 to $99,999: 25.0 to 29.9 percent
+        AF9IE051:    $75,000 to $99,999: 30.0 to 34.9 percent
+        AF9IE052:    $75,000 to $99,999: 35.0 to 39.9 percent
+        AF9IE053:    $75,000 to $99,999: 40.0 to 49.9 percent
+        AF9IE054:    $75,000 to $99,999: 50.0 percent or more
+        AF9IE055:    $75,000 to $99,999: Not computed
+        AF9IE056:    $100,000 or more
+        AF9IE057:    $100,000 or more: Less than 20.0 percent
+        AF9IE058:    $100,000 or more: 20.0 to 24.9 percent
+        AF9IE059:    $100,000 or more: 25.0 to 29.9 percent
+        AF9IE060:    $100,000 or more: 30.0 to 34.9 percent
+        AF9IE061:    $100,000 or more: 35.0 to 39.9 percent
+        AF9IE062:    $100,000 or more: 40.0 to 49.9 percent
+        AF9IE063:    $100,000 or more: 50.0 percent or more
+        AF9IE064:    $100,000 or more: Not computed
+ 
+    Table 18:    Value
+    Universe:    Owner-occupied housing units
+    Source code: B25075
+    NHGIS code:  AF9J
+        AF9JE001:    Total
+        AF9JE002:    Less than $10,000
+        AF9JE003:    $10,000 to $14,999
+        AF9JE004:    $15,000 to $19,999
+        AF9JE005:    $20,000 to $24,999
+        AF9JE006:    $25,000 to $29,999
+        AF9JE007:    $30,000 to $34,999
+        AF9JE008:    $35,000 to $39,999
+        AF9JE009:    $40,000 to $49,999
+        AF9JE010:    $50,000 to $59,999
+        AF9JE011:    $60,000 to $69,999
+        AF9JE012:    $70,000 to $79,999
+        AF9JE013:    $80,000 to $89,999
+        AF9JE014:    $90,000 to $99,999
+        AF9JE015:    $100,000 to $124,999
+        AF9JE016:    $125,000 to $149,999
+        AF9JE017:    $150,000 to $174,999
+        AF9JE018:    $175,000 to $199,999
+        AF9JE019:    $200,000 to $249,999
+        AF9JE020:    $250,000 to $299,999
+        AF9JE021:    $300,000 to $399,999
+        AF9JE022:    $400,000 to $499,999
+        AF9JE023:    $500,000 to $749,999
+        AF9JE024:    $750,000 to $999,999
+        AF9JE025:    $1,000,000 to $1,499,999
+        AF9JE026:    $1,500,000 to $1,999,999
+        AF9JE027:    $2,000,000 or more
+ 
+    Table 19:    Median Value (Dollars)
+    Universe:    Owner-occupied housing units
+    Source code: B25077
+    NHGIS code:  AF9L
+        AF9LE001:    Median value (dollars)
+ 
+Data Type (M):
+    Margins of error
+ 
+        NAME_M:      Area Name
+ 
+    Table 1:     Total Population
+    Universe:    Total population
+    Source code: B01003
+    NHGIS code:  AF2L
+        AF2LM001:    Total
+ 
+    Table 2:     Hispanic or Latino Origin by Race
+    Universe:    Total population
+    Source code: B03002
+    NHGIS code:  AF2U
+        AF2UM001:    Total
+        AF2UM002:    Not Hispanic or Latino
+        AF2UM003:    Not Hispanic or Latino: White alone
+        AF2UM004:    Not Hispanic or Latino: Black or African American alone
+        AF2UM005:    Not Hispanic or Latino: American Indian and Alaska Native alone
+        AF2UM006:    Not Hispanic or Latino: Asian alone
+        AF2UM007:    Not Hispanic or Latino: Native Hawaiian and Other Pacific Islander alone
+        AF2UM008:    Not Hispanic or Latino: Some other race alone
+        AF2UM009:    Not Hispanic or Latino: Two or more races
+        AF2UM010:    Not Hispanic or Latino: Two or more races: Two races including Some other race
+        AF2UM011:    Not Hispanic or Latino: Two or more races: Two races excluding Some other race, and three or more races
+        AF2UM012:    Hispanic or Latino
+        AF2UM013:    Hispanic or Latino: White alone
+        AF2UM014:    Hispanic or Latino: Black or African American alone
+        AF2UM015:    Hispanic or Latino: American Indian and Alaska Native alone
+        AF2UM016:    Hispanic or Latino: Asian alone
+        AF2UM017:    Hispanic or Latino: Native Hawaiian and Other Pacific Islander alone
+        AF2UM018:    Hispanic or Latino: Some other race alone
+        AF2UM019:    Hispanic or Latino: Two or more races
+        AF2UM020:    Hispanic or Latino: Two or more races: Two races including Some other race
+        AF2UM021:    Hispanic or Latino: Two or more races: Two races excluding Some other race, and three or more races
+ 
+    Table 3:     Household Type (Including Living Alone)
+    Universe:    Households
+    Source code: B11001
+    NHGIS code:  AF3J
+        AF3JM001:    Total
+        AF3JM002:    Family households
+        AF3JM003:    Family households: Married-couple family
+        AF3JM004:    Family households: Other family
+        AF3JM005:    Family households: Other family: Male householder, no wife present
+        AF3JM006:    Family households: Other family: Female householder, no husband present
+        AF3JM007:    Nonfamily households
+        AF3JM008:    Nonfamily households: Householder living alone
+        AF3JM009:    Nonfamily households: Householder not living alone
+ 
+    Table 4:     Educational Attainment for the Population 25 Years and Over
+    Universe:    Population 25 years and over
+    Source code: B15003
+    NHGIS code:  AF4O
+        AF4OM001:    Total
+        AF4OM002:    No schooling completed
+        AF4OM003:    Nursery school
+        AF4OM004:    Kindergarten
+        AF4OM005:    1st grade
+        AF4OM006:    2nd grade
+        AF4OM007:    3rd grade
+        AF4OM008:    4th grade
+        AF4OM009:    5th grade
+        AF4OM010:    6th grade
+        AF4OM011:    7th grade
+        AF4OM012:    8th grade
+        AF4OM013:    9th grade
+        AF4OM014:    10th grade
+        AF4OM015:    11th grade
+        AF4OM016:    12th grade, no diploma
+        AF4OM017:    Regular high school diploma
+        AF4OM018:    GED or alternative credential
+        AF4OM019:    Some college, less than 1 year
+        AF4OM020:    Some college, 1 or more years, no degree
+        AF4OM021:    Associate's degree
+        AF4OM022:    Bachelor's degree
+        AF4OM023:    Master's degree
+        AF4OM024:    Professional school degree
+        AF4OM025:    Doctorate degree
+ 
+    Table 5:     Ratio of Income to Poverty Level in the Past 12 Months
+    Universe:    Population for whom poverty status is determined
+    Source code: C17002
+    NHGIS code:  AF43
+        AF43M001:    Total
+        AF43M002:    Under .50
+        AF43M003:    .50 to .99
+        AF43M004:    1.00 to 1.24
+        AF43M005:    1.25 to 1.49
+        AF43M006:    1.50 to 1.84
+        AF43M007:    1.85 to 1.99
+        AF43M008:    2.00 and over
+ 
+    Table 6:     Median Household Income in the Past 12 Months (in 2016 Inflation-Adjusted Dollars)
+    Universe:    Households
+    Source code: B19013
+    NHGIS code:  AF49
+        AF49M001:    Median household income in the past 12 months (in 2016 inflation-adjusted dollars)
+ 
+    Table 7:     Per Capita Income in the Past 12 Months (in 2016 Inflation-Adjusted Dollars)
+    Universe:    Total population
+    Source code: B19301
+    NHGIS code:  AF6A
+        AF6AM001:    Per capita income in the past 12 months (in 2016 inflation-adjusted dollars)
+ 
+    Table 8:     Housing Units
+    Universe:    Housing units
+    Source code: B25001
+    NHGIS code:  AF7N
+        AF7NM001:    Total
+ 
+    Table 9:     Occupancy Status
+    Universe:    Housing units
+    Source code: B25002
+    NHGIS code:  AF7O
+        AF7OM001:    Total
+        AF7OM002:    Occupied
+        AF7OM003:    Vacant
+ 
+    Table 10:    Tenure
+    Universe:    Occupied housing units
+    Source code: B25003
+    NHGIS code:  AF7P
+        AF7PM001:    Total
+        AF7PM002:    Owner occupied
+        AF7PM003:    Renter occupied
+ 
+    Table 11:    Vacancy Status
+    Universe:    Vacant housing units
+    Source code: B25004
+    NHGIS code:  AF7Z
+        AF7ZM001:    Total
+        AF7ZM002:    For rent
+        AF7ZM003:    Rented, not occupied
+        AF7ZM004:    For sale only
+        AF7ZM005:    Sold, not occupied
+        AF7ZM006:    For seasonal, recreational, or occasional use
+        AF7ZM007:    For migrant workers
+        AF7ZM008:    Other vacant
+ 
+    Table 12:    Units in Structure
+    Universe:    Housing units
+    Source code: B25024
+    NHGIS code:  AF8E
+        AF8EM001:    Total
+        AF8EM002:    1, detached
+        AF8EM003:    1, attached
+        AF8EM004:    2
+        AF8EM005:    3 or 4
+        AF8EM006:    5 to 9
+        AF8EM007:    10 to 19
+        AF8EM008:    20 to 49
+        AF8EM009:    50 or more
+        AF8EM010:    Mobile home
+        AF8EM011:    Boat, RV, van, etc.
+ 
+    Table 13:    Year Structure Built
+    Universe:    Housing units
+    Source code: B25034
+    NHGIS code:  AF8H
+        AF8HM001:    Total
+        AF8HM002:    Built 2014 or later
+        AF8HM003:    Built 2010 to 2013
+        AF8HM004:    Built 2000 to 2009
+        AF8HM005:    Built 1990 to 1999
+        AF8HM006:    Built 1980 to 1989
+        AF8HM007:    Built 1970 to 1979
+        AF8HM008:    Built 1960 to 1969
+        AF8HM009:    Built 1950 to 1959
+        AF8HM010:    Built 1940 to 1949
+        AF8HM011:    Built 1939 or earlier
+ 
+    Table 14:    Median Year Structure Built
+    Universe:    Housing units
+    Source code: B25035
+    NHGIS code:  AF8I
+        AF8IM001:    Median year structure built
+ 
+    Table 15:    Median Gross Rent (Dollars)
+    Universe:    Renter-occupied housing units paying cash rent
+    Source code: B25064
+    NHGIS code:  AF89
+        AF89M001:    Median gross rent
+ 
+    Table 16:    Gross Rent as a Percentage of Household Income in the Past 12 Months
+    Universe:    Renter-occupied housing units
+    Source code: B25070
+    NHGIS code:  AF9F
+        AF9FM001:    Total
+        AF9FM002:    Less than 10.0 percent
+        AF9FM003:    10.0 to 14.9 percent
+        AF9FM004:    15.0 to 19.9 percent
+        AF9FM005:    20.0 to 24.9 percent
+        AF9FM006:    25.0 to 29.9 percent
+        AF9FM007:    30.0 to 34.9 percent
+        AF9FM008:    35.0 to 39.9 percent
+        AF9FM009:    40.0 to 49.9 percent
+        AF9FM010:    50.0 percent or more
+        AF9FM011:    Not computed
+ 
+    Table 17:    Household Income by Gross Rent as a Percentage of Household Income in the Past 12 Months
+    Universe:    Renter-occupied housing units
+    Source code: B25074
+    NHGIS code:  AF9I
+        AF9IM001:    Total
+        AF9IM002:    Less than $10,000
+        AF9IM003:    Less than $10,000: Less than 20.0 percent
+        AF9IM004:    Less than $10,000: 20.0 to 24.9 percent
+        AF9IM005:    Less than $10,000: 25.0 to 29.9 percent
+        AF9IM006:    Less than $10,000: 30.0 to 34.9 percent
+        AF9IM007:    Less than $10,000: 35.0 to 39.9 percent
+        AF9IM008:    Less than $10,000: 40.0 to 49.9 percent
+        AF9IM009:    Less than $10,000: 50.0 percent or more
+        AF9IM010:    Less than $10,000: Not computed
+        AF9IM011:    $10,000 to $19,999
+        AF9IM012:    $10,000 to $19,999: Less than 20.0 percent
+        AF9IM013:    $10,000 to $19,999: 20.0 to 24.9 percent
+        AF9IM014:    $10,000 to $19,999: 25.0 to 29.9 percent
+        AF9IM015:    $10,000 to $19,999: 30.0 to 34.9 percent
+        AF9IM016:    $10,000 to $19,999: 35.0 to 39.9 percent
+        AF9IM017:    $10,000 to $19,999: 40.0 to 49.9 percent
+        AF9IM018:    $10,000 to $19,999: 50.0 percent or more
+        AF9IM019:    $10,000 to $19,999: Not computed
+        AF9IM020:    $20,000 to $34,999
+        AF9IM021:    $20,000 to $34,999: Less than 20.0 percent
+        AF9IM022:    $20,000 to $34,999: 20.0 to 24.9 percent
+        AF9IM023:    $20,000 to $34,999: 25.0 to 29.9 percent
+        AF9IM024:    $20,000 to $34,999: 30.0 to 34.9 percent
+        AF9IM025:    $20,000 to $34,999: 35.0 to 39.9 percent
+        AF9IM026:    $20,000 to $34,999: 40.0 to 49.9 percent
+        AF9IM027:    $20,000 to $34,999: 50.0 percent or more
+        AF9IM028:    $20,000 to $34,999: Not computed
+        AF9IM029:    $35,000 to $49,999
+        AF9IM030:    $35,000 to $49,999: Less than 20.0 percent
+        AF9IM031:    $35,000 to $49,999: 20.0 to 24.9 percent
+        AF9IM032:    $35,000 to $49,999: 25.0 to 29.9 percent
+        AF9IM033:    $35,000 to $49,999: 30.0 to 34.9 percent
+        AF9IM034:    $35,000 to $49,999: 35.0 to 39.9 percent
+        AF9IM035:    $35,000 to $49,999: 40.0 to 49.9 percent
+        AF9IM036:    $35,000 to $49,999: 50.0 percent or more
+        AF9IM037:    $35,000 to $49,999: Not computed
+        AF9IM038:    $50,000 to $74,999
+        AF9IM039:    $50,000 to $74,999: Less than 20.0 percent
+        AF9IM040:    $50,000 to $74,999: 20.0 to 24.9 percent
+        AF9IM041:    $50,000 to $74,999: 25.0 to 29.9 percent
+        AF9IM042:    $50,000 to $74,999: 30.0 to 34.9 percent
+        AF9IM043:    $50,000 to $74,999: 35.0 to 39.9 percent
+        AF9IM044:    $50,000 to $74,999: 40.0 to 49.9 percent
+        AF9IM045:    $50,000 to $74,999: 50.0 percent or more
+        AF9IM046:    $50,000 to $74,999: Not computed
+        AF9IM047:    $75,000 to $99,999
+        AF9IM048:    $75,000 to $99,999: Less than 20.0 percent
+        AF9IM049:    $75,000 to $99,999: 20.0 to 24.9 percent
+        AF9IM050:    $75,000 to $99,999: 25.0 to 29.9 percent
+        AF9IM051:    $75,000 to $99,999: 30.0 to 34.9 percent
+        AF9IM052:    $75,000 to $99,999: 35.0 to 39.9 percent
+        AF9IM053:    $75,000 to $99,999: 40.0 to 49.9 percent
+        AF9IM054:    $75,000 to $99,999: 50.0 percent or more
+        AF9IM055:    $75,000 to $99,999: Not computed
+        AF9IM056:    $100,000 or more
+        AF9IM057:    $100,000 or more: Less than 20.0 percent
+        AF9IM058:    $100,000 or more: 20.0 to 24.9 percent
+        AF9IM059:    $100,000 or more: 25.0 to 29.9 percent
+        AF9IM060:    $100,000 or more: 30.0 to 34.9 percent
+        AF9IM061:    $100,000 or more: 35.0 to 39.9 percent
+        AF9IM062:    $100,000 or more: 40.0 to 49.9 percent
+        AF9IM063:    $100,000 or more: 50.0 percent or more
+        AF9IM064:    $100,000 or more: Not computed
+ 
+    Table 18:    Value
+    Universe:    Owner-occupied housing units
+    Source code: B25075
+    NHGIS code:  AF9J
+        AF9JM001:    Total
+        AF9JM002:    Less than $10,000
+        AF9JM003:    $10,000 to $14,999
+        AF9JM004:    $15,000 to $19,999
+        AF9JM005:    $20,000 to $24,999
+        AF9JM006:    $25,000 to $29,999
+        AF9JM007:    $30,000 to $34,999
+        AF9JM008:    $35,000 to $39,999
+        AF9JM009:    $40,000 to $49,999
+        AF9JM010:    $50,000 to $59,999
+        AF9JM011:    $60,000 to $69,999
+        AF9JM012:    $70,000 to $79,999
+        AF9JM013:    $80,000 to $89,999
+        AF9JM014:    $90,000 to $99,999
+        AF9JM015:    $100,000 to $124,999
+        AF9JM016:    $125,000 to $149,999
+        AF9JM017:    $150,000 to $174,999
+        AF9JM018:    $175,000 to $199,999
+        AF9JM019:    $200,000 to $249,999
+        AF9JM020:    $250,000 to $299,999
+        AF9JM021:    $300,000 to $399,999
+        AF9JM022:    $400,000 to $499,999
+        AF9JM023:    $500,000 to $749,999
+        AF9JM024:    $750,000 to $999,999
+        AF9JM025:    $1,000,000 to $1,499,999
+        AF9JM026:    $1,500,000 to $1,999,999
+        AF9JM027:    $2,000,000 or more
+ 
+    Table 19:    Median Value (Dollars)
+    Universe:    Owner-occupied housing units
+    Source code: B25077
+    NHGIS code:  AF9L
+        AF9LM001:    Median value (dollars)
+ 
+--------------------------------------------------------------------------------
+Citation and Use of NHGIS Data
+--------------------------------------------------------------------------------
+ 
+All persons are granted a limited license to use this documentation and the
+accompanying data, subject to the following conditions:
+
+* Publications and research reports employing NHGIS data (either tabular or GIS)
+  must cite it appropriately. The citation should include the following:
+
+    Steven Manson, Jonathan Schroeder, David Van Riper, and Steven Ruggles. 
+    IPUMS National Historical Geographic Information System: Version 12.0 [Database]. 
+    Minneapolis: University of Minnesota. 2017. 
+    http://doi.org/10.18128/D050.V12.0
+
+* Publications and research reports employing school attendance areas data
+  (either tabular or GIS) must cite it appropriately. The citation should
+  include the following:
+
+    The College of William and Mary and the Minnesota Population Center.
+    School Attendance Boundary Information System (SABINS): Version 1.0.
+    Minneapolis, MN: University of Minnesota 2011.
+
+* For policy briefs or articles in the popular press, we recommend that you cite the use of NHGIS data as follows:
+
+    IPUMS NHGIS, University of Minnesota, www.nhgis.org.
+
+* If possible, citations involving school attendance areas should also include
+  the URL for the SABINS site:
+
+    http://www.sabinsdata.org/.
+
+In addition, we request that users send us a copy of any publications, research
+reports, or educational material making use of the data or documentation.
+Printed matter should be sent to:
+
+    NHGIS
+    Minnesota Population Center
+    University of Minnesota
+    50 Willey Hall
+    225 19th Ave S
+    Minneapolis, MN 55455
+
+Send electronic material to: nhgis@umn.edu
