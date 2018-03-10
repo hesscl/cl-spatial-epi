@@ -1,1 +1,0 @@
-R:\Project\seattle_rental_market\sea-viewer>pscp -i "H:\sea_view_priv.ppk" -l "stxhess" index.html stxhess@35.230.30.254:index.html
