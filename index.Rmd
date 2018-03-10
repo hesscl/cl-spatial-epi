@@ -18,24 +18,27 @@ library(spdplyr)
 library(rgdal)
 library(rgeos)
 library(INLA)
+library(flexdashboard)
 library(highcharter)
-
 
 #load 2012-2016 ACS data (2016 tracts same as 2010 for KC)
 census <- read_csv(file = "./input/nhgis0051_ds225_20165_2016_tract.csv")
+
+#read in tract shapefile for king county
+kc_shp <- readOGR(dsn = "./input/KCTract2010/KCTract2010.shp",
+                  layer = "KCTract2010",
+                  GDAL1_integer64_policy = TRUE,
+                  stringsAsFactors = F)
 
 #determine config (dev or github)
 if(file.exists("../data/cl/craigslistDB.sqlite")){
   DB <- dbConnect(SQLite(), dbname="../data/cl/craigslistDB.sqlite")
   cl <- tbl(DB, "clean") #clean listing table
   
-  #pull GEOIDs in KC, WA
-  kc_filter <- tbl(DB, "tract") %>% filter(STATEFP10 == "53", COUNTYFP10 == "033") %>% pull(GISJOIN) 
-  
   #compute tract aggregates for CL listing count
   tractCl <- cl %>%
     filter(!is.na(GISJOIN), !is.na(cleanBeds), !is.na(cleanRent), !is.na(cleanSqft)) %>% #only listings with valid Bed/Rent
-    filter(GISJOIN %in% kc_filter) %>% #filter to KC only (db has metro area)
+    filter(GISJOIN %in% kc_shp@data$GISJOIN) %>% #filter to KC only (db has metro area)
     dplyr::select(listingMoYr, GISJOIN, seattle, matchAddress, matchAddress2, matchType, cleanBeds, cleanRent) %>% #SELECT these columns
     collect %>% #bring db query into memory
     filter(!grepl("Google", matchType)) %>% #no Google geocodes, only Smartystreets (precise to Zip9)
@@ -49,15 +52,11 @@ if(file.exists("../data/cl/craigslistDB.sqlite")){
               med3Plus = median(cleanRent[cleanBeds>2]),
               seattle = max(seattle))
   dbDisconnect(DB)
+  write_csv(tractCl, "./input/tractCl.csv")
+  
 } else{
   tract <- read_csv("./input/tractCl.csv")
 }
-
-#read in tract shapefile for king county
-kc_shp <- readOGR(dsn = "./input/KCTract2010/KCTract2010.shp",
-                  layer = "KCTract2010",
-                  GDAL1_integer64_policy = TRUE,
-                  stringsAsFactors = F)
 
 #merge tables together, allow missing values for tracts with no listings (i.e. no value in tract)
 test <- left_join(census, tractCl)
@@ -102,22 +101,21 @@ Row
 
 ### Welcome!
 
-This website provides the latest information from the UW team's rental market database. 
+This website provides supplementary information for the paper _Identifying sociodemographic variations in scraped rental housing data from King County, WA_
 
 Contact Chris Hess at [hesscl@uw.edu](mailto://hesscl@uw.edu) for more information about this report.
 
 Row
 -------------------------------------
 
-### 90-day summary for Seattle listings
+### Density of rental listings scraped per neighborhood (census tracts)
 
 ```{r sea.90day}
 
-hchart(density(test$nListings), type = "area") %>%
-  hc_yAxis(title = list(text = "Density")) %>%
-  hc_xAxis(title = list(text = "N Listings in Tract")) %>%
-  #hc_tooltip(pointFormat = "<b>{series.name} Bedroom Units</b> <br> Rent: {point.y:%.0f} <br> N Listings: {point.n}") %>%
-  hc_exporting(enabled = TRUE)
+hchart(test$nListings, type = "area", name = "N Listings in Tract") %>%
+  hc_yAxis(title = list(text = "Frequency")) %>%
+  hc_exporting(enabled = TRUE) 
+
               
 ```
 

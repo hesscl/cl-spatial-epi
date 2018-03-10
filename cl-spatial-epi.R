@@ -21,18 +21,21 @@ setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 #load 2012-2016 ACS data (2016 tracts same as 2010 for KC)
 census <- read_csv(file = "./input/nhgis0051_ds225_20165_2016_tract.csv")
 
+#read in tract shapefile for king county
+kc_shp <- readOGR(dsn = "./input/KCTract2010/KCTract2010.shp",
+                  layer = "KCTract2010",
+                  GDAL1_integer64_policy = TRUE,
+                  stringsAsFactors = F)
+
 #determine config (dev or github)
 if(file.exists("../data/cl/craigslistDB.sqlite")){
   DB <- dbConnect(SQLite(), dbname="../data/cl/craigslistDB.sqlite")
   cl <- tbl(DB, "clean") #clean listing table
   
-  #pull GEOIDs in KC, WA
-  kc_filter <- tbl(DB, "tract") %>% filter(STATEFP10 == "53", COUNTYFP10 == "033") %>% pull(GISJOIN) 
-  
   #compute tract aggregates for CL listing count
   tractCl <- cl %>%
     filter(!is.na(GISJOIN), !is.na(cleanBeds), !is.na(cleanRent), !is.na(cleanSqft)) %>% #only listings with valid Bed/Rent
-    filter(GISJOIN %in% kc_filter) %>% #filter to KC only (db has metro area)
+    filter(GISJOIN %in% kc_shp@data$GISJOIN) %>% #filter to KC only (db has metro area)
     dplyr::select(listingMoYr, GISJOIN, seattle, matchAddress, matchAddress2, matchType, cleanBeds, cleanRent) %>% #SELECT these columns
     collect %>% #bring db query into memory
     filter(!grepl("Google", matchType)) %>% #no Google geocodes, only Smartystreets (precise to Zip9)
@@ -52,11 +55,7 @@ if(file.exists("../data/cl/craigslistDB.sqlite")){
   tract <- read_csv("./input/tractCl.csv")
 }
 
-#read in tract shapefile for king county
-kc_shp <- readOGR(dsn = "./input/KCTract2010/KCTract2010.shp",
-                  layer = "KCTract2010",
-                  GDAL1_integer64_policy = TRUE,
-                  stringsAsFactors = F)
+
 
 #check listing var
 summary(tractCl$nListings)
@@ -95,7 +94,8 @@ test <- test %>%
          pvac = nvachu/nHU,
          pforrent = ifelse(nvachu == 0, 0, AF7ZM002/nvachu),
          pownocc = nownocc/nocc,
-         pblt14lat = AF8HE002/nHU)
+         pblt14lat = AF8HE002/nHU) %>%
+  filter(tpop > 0)
 
 
 #### B. Descriptive Analyses --------------------------------------------------
@@ -106,56 +106,69 @@ pal <- brewer.pal(7, "Purples")
 ggplot(test, aes(x = nListings)) +
   geom_density(fill = pal[7]) +
   theme_minimal() +
-  xlab("Number of Craigslist Listings") +
-  ylab("Density") +
+  xlab("\nNumber of Craigslist Listings") +
+  ylab("Density\n") +
   labs(title = "Density of Tract N CL Listings") +
   ggsave(filename = "./output/graphics/nListingDensity.pdf",
-         width = 8, height = 6)
+         width = 8, height = 6, dpi = 300)
 
 #nHU ACS density
 ggplot(test, aes(x = nHU)) +
   geom_density(fill = pal[7]) +
   theme_minimal() +
-  xlab("Number of Housing Units 2012-2016") +
-  ylab("Density") +
+  xlab("\nNumber of Housing Units 2012-2016") +
+  ylab("Density\n") +
   labs(title = "Density of Total Housing Units in Tract") +
   ggsave(filename = "./output/graphics/nHUDensity.pdf",
-         width = 8, height = 6)
+         width = 8, height = 6, dpi = 300)
 
+#median HH income
+ggplot(test, aes(x = medHHInc)) +
+  geom_density(fill = pal[7]) +
+  theme_minimal() +
+  xlab("\nMedian Household Income") +
+  ylab("Density\n") +
+  labs(title = "Density of Median HH Income") +
+  ggsave(filename = "./output/graphics/medHHIncDensity.pdf",
+         width = 8, height = 6, dpi = 300)
+
+#racial and ethnic composition
 blk <- test %>% 
-  mutate(race = "Non-Hispanic Black",
+  mutate(race = "Black",
          percent = pnhb) %>%
-  dplyr::select(race, percent)
+  dplyr::select(race, percent, GISJOIN)
 
 hsp <- test %>% 
   mutate(race = "Hispanic",
          percent = phsp) %>%
-  dplyr::select(race, percent)
+  dplyr::select(race, percent, GISJOIN)
 
 asi <- test %>% 
-  mutate(race = "Non-Hispanic Asian",
+  mutate(race = "Asian",
          percent = pnha) %>%
-  dplyr::select(race, percent)
+  dplyr::select(race, percent, GISJOIN)
 
 wht <- test %>% 
-  mutate(race = "Non-Hispanic White",
+  mutate(race = "White",
          percent = pnhw) %>%
-  dplyr::select(race, percent)
+  dplyr::select(race, percent, GISJOIN)
 
 oth <- test %>%
-  mutate(race = "Non-Hispanic Other",
+  mutate(race = "Other",
          percent = pnho) %>%
-  dplyr::select(race, percent)
+  dplyr::select(race, percent, GISJOIN)
 
 race_dens <- bind_rows(asi, blk, hsp, oth, wht)
 race_dens$race <- as.factor(race_dens$race)
-race_dens$race <- rev(factor(race_dens$race, levels = levels(race_dens$race)[c(2, 3, 1, 4, 5)]))
 
-ggplot(race_dens, aes(x = percent, group = race, color = race)) + 
-  geom_density(lwd = 1) +
-  theme_minimal()
+ggplot(race_dens, aes(x = race, y = percent, group = race)) + 
+  geom_boxplot(color = pal[7]) +
+  theme_minimal() +
+  ggsave(filename = "./output/graphics/raceBoxplot.pdf",
+         width = 8, height = 6, dpi = 300)
 
 #### D. Spatial Visualizations ------------------------------------------------
+
 options(scipen = 99)
 
 kc_shp@data$id <- rownames(kc_shp@data)
@@ -167,7 +180,7 @@ kc_f <- inner_join(kc_f, kc_shp@data, "id")
 ggplot(kc_f, aes(x = long, y = lat, group = group, fill = nHU)) +
   geom_polygon(color = "white", lwd = .15) +
   scale_fill_distiller(name="N HUs", palette = "Blues", 
-                       breaks = pretty_breaks(n = 5), direction = 1, na.value = "grey80") + 
+                       breaks = scales::pretty_breaks(n = 5), direction = 1, na.value = "grey80") + 
   coord_map() +
   theme_minimal() +
   theme(axis.ticks.y = element_blank(),axis.text.y = element_blank(), # get rid of x ticks/text
@@ -176,23 +189,7 @@ ggplot(kc_f, aes(x = long, y = lat, group = group, fill = nHU)) +
         panel.grid = element_blank()) +
   xlab("") +
   ylab("") +
-  ggsave(filename = "./output/maps/nHU_Map.pdf",
-         dpi = 300)
-
-
-ggplot(kc_f, aes(x = long, y = lat, group = group, fill = nHU-nHU)) +
-  geom_polygon(color = "white", lwd = .15) +
-  scale_fill_gradient2() +
-  theme_map() +
-  coord_map() +
-  theme_minimal() +
-  theme(axis.ticks.y = element_blank(),axis.text.y = element_blank(), # get rid of x ticks/text
-        axis.ticks.x = element_blank(),axis.text.x = element_blank(), # get rid of y ticks/text
-        panel.background = element_blank(),
-        panel.grid = element_blank()) +
-  xlab("") +
-  ylab("") +
-  ggsave(filename = "./output/maps/nHU-ACS_Map.pdf",
+  ggsave(filename = "./output/maps/ACS_nHU.pdf",
          dpi = 300)
 
 ggplot(kc_f, aes(x = long, y = lat, group = group, fill = nforrent)) +
@@ -228,76 +225,60 @@ ggplot(kc_f, aes(x = long, y = lat, group = group, fill = log10(nListings))) +
   ggsave(filename = "./output/maps/log10nListings.pdf",
          dpi = 300)
 
-ggplot(kc_f, aes(x = long, y = lat, group = group, fill = nforrent)) +
-  geom_polygon(color = "white", lwd = .15) +
-  scale_fill_distiller(name="N For Rent (ACS)", palette = "Blues", 
-                       breaks = c(0, 1, 2, 3),
-                       labels = c("1", "10", "100", "1000"),
-                       direction = 1, na.value = "grey80") + 
-  coord_map() +
-  theme_minimal() +
-  theme(axis.ticks.y = element_blank(),axis.text.y = element_blank(), # get rid of x ticks/text
-        axis.ticks.x = element_blank(),axis.text.x = element_blank(), # get rid of y ticks/text
-        panel.background = element_blank(),
-        panel.grid = element_blank()) +
-  xlab("") +
-  ylab("") +
-  ggsave(filename = "./output/maps/acsForRent.pdf",
-         dpi = 300)
 
 # make grid graphic for different compositions
 blk_f <- kc_f %>% 
   mutate(race = "Non-Hispanic Black",
          percent = pnhb) %>%
-  dplyr::select(long, lat, group, race, percent)
+  dplyr::select(long, lat, group, race, percent, nListings)
 
 hsp_f <- kc_f %>% 
   mutate(race = "Hispanic",
          percent = phsp) %>%
-  dplyr::select(long, lat, group, race, percent)
+  dplyr::select(long, lat, group, race, percent, nListings)
 
 asi_f <- kc_f %>% 
   mutate(race = "Non-Hispanic Asian",
          percent = pnha) %>%
-  dplyr::select(long, lat, group, race, percent)
+  dplyr::select(long, lat, group, race, percent, nListings)
 
 wht_f <- kc_f %>% 
   mutate(race = "Non-Hispanic White",
          percent = pnhw) %>%
-  dplyr::select(long, lat, group, race, percent)
+  dplyr::select(long, lat, group, race, percent, nListings)
 
 oth_f <- kc_f %>%
   mutate(race = "Non-Hispanic Other",
          percent = pnho) %>%
-  dplyr::select(long, lat, group, race, percent)
+  dplyr::select(long, lat, group, race, percent, nListings)
 
-demog_f <- bind_rows(asi_f, blk_f, hsp_f, oth_f)
+demog_f <- bind_rows(asi_f, blk_f, hsp_f, oth_f, wht_f)
 demog_f$race <- as.factor(demog_f$race)
 demog_f$race <- factor(demog_f$race, levels = levels(demog_f$race)[c(2, 3, 1, 4, 5)])
 
 ggplot(demog_f, aes(x = long, y = lat, group = group, fill = percent)) +
   facet_wrap(~ race) +
-  geom_polygon(color = "white", lwd = .15) +
+  geom_polygon(color = "white", lwd = .1) +
   scale_fill_viridis_c(labels = scales::percent) +
   theme_map() +
   coord_map() +
   theme(strip.background = element_rect(fill = "white", color = "white")) +
   theme(strip.text = element_text(colour = "Black", size = 12)) +  
-  theme(legend.position = c(1.15, .1), legend.justification = c(1, 0)) +
+  theme(legend.position = c(.85, .1), legend.justification = c(1, 0)) +
   labs(fill = "Percent of Tract Population") +
-  ggsave(filename = "./output/maps/ethraceMap.pdf",
+  ggsave(filename = "./output/maps/ACS_ethrace.pdf",
          width = 12, height = 7, dpi = 300)
 
 ggplot(wht_f, aes(x = long, y = lat, group = group, fill = percent)) +
-  geom_polygon(color = "white", lwd = .15) +
+  geom_polygon(color = "white", lwd = .1) +
   scale_fill_viridis_c(labels = scales::percent) +
   theme_map() +
   coord_map() +
   theme(strip.background = element_rect(fill = "white", color = "white")) +
   theme(strip.text = element_text(colour = "Black", size = 12)) +  
-  theme(legend.position = c(1.15, .1), legend.justification = c(1, 0)) +
+  theme(legend.position = c(1.05, .1), legend.justification = c(1, 0)) +
   labs(fill = "Percent Non-Hispanic White") +
-  ggsave(filename = "./output/maps/nhwMap.pdf",
+  ggsave(filename = "./output/maps/ACS_nhwMap.pdf",
          width = 12, height = 7, dpi = 300)
 
 ggplot(test, aes(x = pnhb, y = nListings)) + geom_smooth() + geom_point() +
