@@ -411,15 +411,18 @@ kc_adj <- poly2nb(kc_shp)
 nb2INLA("./output/graphINLA/kctract.graph", kc_adj)
 
 #create a couple numeric ID columns to use later for INLA 
-test$idx <- 1:nrow(test) 
-test$idxx <- test$idx
+
+idx <- 1:nrow(kc_df) #INLA seems inconsistent when sourcing script, sometimes wants
+idxx <- kc_df$idx    #a standalone object, sometimes expects within df
+kc_df$idx <- 1:nrow(kc_df) 
+kc_df$idxx <- kc_df$idx
 
 #extract the dataframe to hand to INLA
 kc_df <- as.data.frame(kc_shp@data)
 
 ### Model 0: Negative Binomial (no random effects)
-form0 <- nListings ~ 1 + log(tpop) + nHU + pforrent + pownocc + pblt14lat +
-  pnhb + phsp + pnha + pnho + medHHInc + ppov + pforborn + seattle 
+form2 <- nListings ~ 1 + log(tpop) + nHU + pforrent + pownocc + pblt14lat +
+  pnhb + phsp + pnha + pnho + medHHInc + ppov + pforborn + seattle
 
 m0 <- inla(form0, 
            family = "nbinomial", 
@@ -531,7 +534,7 @@ mfit <- data.frame(
   WAIC = c(m0WAIC, m1WAIC, m2WAIC)
 )
 
-mfit
+write(xtable::xtable(mfit), "./output/modelFit.tex")
 
 #maps
 kc_shp@data$id <- rownames(kc_shp@data)

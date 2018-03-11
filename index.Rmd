@@ -9,21 +9,24 @@ output:
 ---
 
 ```{r setup, include=FALSE}
+#packages
 library(tidyverse)
 library(sqldf)
 library(ggthemes)
+library(gridExtra)
 library(RColorBrewer)
 library(viridis)
 library(sp)
 library(spdplyr)
 library(rgdal)
 library(rgeos)
+library(spdep)
 library(INLA)
 library(flexdashboard)
 library(highcharter)
 
 #load 2012-2016 ACS data (2016 tracts same as 2010 for KC)
-census <- read_csv(file = "./input/nhgis0051_ds225_20165_2016_tract.csv")
+census <- read_csv(file = "./input/nhgis0052_ds225_20165_2016_tract.csv")
 
 #read in tract shapefile for king county
 kc_shp <- readOGR(dsn = "./input/KCTract2010/KCTract2010.shp",
@@ -73,6 +76,7 @@ test <- test %>%
          tnha = AF2UE006,
          thsp = AF2UE012,
          tnho =  AF2UE005+AF2UE007+AF2UE008+AF2UE009,
+         nforborn = AF95E005,
          nvachu = AF7OE003,
          nforrent = AF7ZM002,
          nocc =  AF7OE002,
@@ -87,10 +91,16 @@ test <- test %>%
          pnho = tnho/tpop,
          pnha = tnha/tpop,
          phsp = thsp/tpop,
+         pforborn = nforborn/tpop,
          pvac = nvachu/nHU,
          pforrent = ifelse(nvachu == 0, 0, AF7ZM002/nvachu),
          pownocc = nownocc/nocc,
-         pblt14lat = AF8HE002/nHU)
+         pblt14lat = AF8HE002/nHU) %>%
+  filter(tpop > 0)
+
+thm <- hc_theme_merge(
+  hc_theme_google(),
+  hc_theme(colors = RColorBrewer::brewer.pal(3, "Purples")[-1]))
 
 ```
 
@@ -116,7 +126,8 @@ Row
 ```{r sea.90day}
 
 hchart(test$nListings, type = "area", name = "N Listings in Tract") %>%
-  hc_yAxis(title = list(text = "Frequency"))
+  hc_yAxis(title = list(text = "Frequency")) %>%
+  hc_add_theme(thm)
 
               
 ```
