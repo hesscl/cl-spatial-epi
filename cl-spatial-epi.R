@@ -7,19 +7,21 @@
 library(tidyverse)
 library(sqldf)
 library(ggthemes)
+library(gridExtra)
 library(RColorBrewer)
 library(viridis)
 library(sp)
 library(spdplyr)
 library(rgdal)
 library(rgeos)
+library(spdep)
 library(INLA)
 
 #setwd to location of file (REQUIRES RSTUDIO)
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
 #load 2012-2016 ACS data (2016 tracts same as 2010 for KC)
-census <- read_csv(file = "./input/nhgis0051_ds225_20165_2016_tract.csv")
+census <- read_csv(file = "./input/nhgis0052_ds225_20165_2016_tract.csv")
 
 #read in tract shapefile for king county
 kc_shp <- readOGR(dsn = "./input/KCTract2010/KCTract2010.shp",
@@ -57,10 +59,6 @@ if(file.exists("../data/cl/craigslistDB.sqlite")){
 
 
 
-#check listing var
-summary(tractCl$nListings)
-
-
 #### A. Prep for `test` table for analyses -----------------------------------------
 
 #merge tables together, allow missing values for tracts with no listings (i.e. no value in tract)
@@ -77,6 +75,7 @@ test <- test %>%
          tnha = AF2UE006,
          thsp = AF2UE012,
          tnho =  AF2UE005+AF2UE007+AF2UE008+AF2UE009,
+         nforborn = AF95E005,
          nvachu = AF7OE003,
          nforrent = AF7ZM002,
          nocc =  AF7OE002,
@@ -91,11 +90,17 @@ test <- test %>%
          pnho = tnho/tpop,
          pnha = tnha/tpop,
          phsp = thsp/tpop,
+         pforborn = nforborn/tpop,
          pvac = nvachu/nHU,
          pforrent = ifelse(nvachu == 0, 0, AF7ZM002/nvachu),
          pownocc = nownocc/nocc,
          pblt14lat = AF8HE002/nHU) %>%
   filter(tpop > 0)
+
+
+#check listing var
+summary(test$nListings) #overdispersed
+sum(test$nListings == 0) #not zero-inflated
 
 
 #### B. Descriptive Analyses --------------------------------------------------
@@ -132,31 +137,42 @@ ggplot(test, aes(x = medHHInc)) +
   ggsave(filename = "./output/graphics/medHHIncDensity.pdf",
          width = 8, height = 6, dpi = 300)
 
+#median HH income
+ggplot(test, aes(x = pforborn)) +
+  geom_histogram(fill = pal[7], bins = 20) +
+  scale_x_continuous(labels = scales::percent) +
+  theme_minimal() +
+  xlab("\nPercent Foreign-Born") +
+  ylab("Frequency\n") +
+  labs(title = "Histogram of Percent Foreign Born") +
+  ggsave(filename = "./output/graphics/forbornHist.pdf",
+         width = 8, height = 6, dpi = 300)
+
 #racial and ethnic composition
 blk <- test %>% 
   mutate(race = "Black",
          percent = pnhb) %>%
-  dplyr::select(race, percent, GISJOIN)
+  dplyr::select(race, percent, nListings, GISJOIN)
 
 hsp <- test %>% 
   mutate(race = "Hispanic",
          percent = phsp) %>%
-  dplyr::select(race, percent, GISJOIN)
+  dplyr::select(race, percent, nListings, GISJOIN)
 
 asi <- test %>% 
   mutate(race = "Asian",
          percent = pnha) %>%
-  dplyr::select(race, percent, GISJOIN)
+  dplyr::select(race, percent, nListings, GISJOIN)
 
 wht <- test %>% 
   mutate(race = "White",
          percent = pnhw) %>%
-  dplyr::select(race, percent, GISJOIN)
+  dplyr::select(race, percent, nListings, GISJOIN)
 
 oth <- test %>%
   mutate(race = "Other",
          percent = pnho) %>%
-  dplyr::select(race, percent, GISJOIN)
+  dplyr::select(race, percent, nListings, GISJOIN)
 
 race_dens <- bind_rows(asi, blk, hsp, oth, wht)
 race_dens$race <- as.factor(race_dens$race)
@@ -167,7 +183,44 @@ ggplot(race_dens, aes(x = race, y = percent, group = race)) +
   ggsave(filename = "./output/graphics/raceBoxplot.pdf",
          width = 8, height = 6, dpi = 300)
 
-#### D. Spatial Visualizations ------------------------------------------------
+ggplot(race_dens, aes(x = percent, y = nListings, group = race, color = race)) + 
+  geom_smooth(se = F) + 
+  scale_x_continuous(labels = scales::percent) +
+  theme_minimal() +
+  xlab("\n% of Neighborhood Population") +
+  ylab("N Listings\n") +
+  ggsave(filename = "./output/graphics/nListingEthRace.pdf",
+       width = 11, height = 8.5, dpi = 300)
+
+ggplot(test, aes(x = medHHInc, y = nListings)) + 
+  geom_point(alpha = .25) +
+  geom_smooth(se = F) + 
+  theme_minimal() +
+  xlab("\nMedian HH Income") +
+  ylab("N Listings\n") +
+  ggsave(filename = "./output/graphics/nListingAvgInc.pdf",
+         width = 8, height = 6, dpi = 300)
+
+ggplot(test, aes(x = ppov, y = nListings)) +
+  geom_point(alpha = .25) +
+  geom_smooth(se = F) + 
+  theme_minimal() +
+  xlab("\n% of Population Below Poverty Line") +
+  ylab("N Listings\n") +
+  ggsave(filename = "./output/graphics/nListingPov.pdf",
+         width = 8, height = 6, dpi = 300)
+
+ggplot(test, aes(x = pforborn, y = nListings)) +
+  geom_point(alpha = .25) +
+  geom_smooth(se = F) + 
+  theme_minimal() +
+  xlab("\n% of Population Foreign-Born") +
+  ylab("N Listings\n") +
+  ggsave(filename = "./output/graphics/nListingForborn.pdf",
+         width = 8, height = 6, dpi = 300)
+
+
+#### C. Spatial Visualizations ------------------------------------------------
 
 options(scipen = 99)
 
@@ -179,7 +232,7 @@ kc_f <- inner_join(kc_f, kc_shp@data, "id")
 
 ggplot(kc_f, aes(x = long, y = lat, group = group, fill = nHU)) +
   geom_polygon(color = "white", lwd = .15) +
-  scale_fill_distiller(name="N HUs", palette = "Blues", 
+  scale_fill_distiller(name="N HUs", palette = "Purples", 
                        breaks = scales::pretty_breaks(n = 5), direction = 1, na.value = "grey80") + 
   coord_map() +
   theme_minimal() +
@@ -194,7 +247,7 @@ ggplot(kc_f, aes(x = long, y = lat, group = group, fill = nHU)) +
 
 ggplot(kc_f, aes(x = long, y = lat, group = group, fill = nforrent)) +
   geom_polygon(color = "white", lwd = .15) +
-  scale_fill_distiller(name="N HU For Rent", palette = "Blues", 
+  scale_fill_distiller(name="N HU For Rent", palette = "Purples", 
                        direction = 1, na.value = "grey80") + 
   coord_map() +
   theme_minimal() +
@@ -210,9 +263,10 @@ ggplot(kc_f, aes(x = long, y = lat, group = group, fill = nforrent)) +
 
 ggplot(kc_f, aes(x = long, y = lat, group = group, fill = log10(nListings))) +
   geom_polygon(color = "white", lwd = .15) +
-  scale_fill_distiller(name="N Listings", palette = "Blues", 
-                       breaks = c(0, 1, 2, 3),
-                       labels = c("1", "10", "100", "1000"),
+  scale_fill_distiller(name="N Listings", palette = "Purples", 
+                       limits = c(0, 4),
+                       breaks = c(1, 2, 3, 4),
+                       labels = c("10", "100", "1000", "10000"),
                        direction = 1, na.value = "grey80") + 
   coord_map() +
   theme_minimal() +
@@ -225,10 +279,68 @@ ggplot(kc_f, aes(x = long, y = lat, group = group, fill = log10(nListings))) +
   ggsave(filename = "./output/maps/log10nListings.pdf",
          dpi = 300)
 
+ggplot(kc_f, aes(x = long, y = lat, group = group, fill = medHHInc)) +
+  geom_polygon(color = "white", lwd = .15) +
+  scale_fill_distiller(name="Median HH Income", palette = "Purples", direction = 1) + 
+  coord_map() +
+  theme_minimal() +
+  theme(axis.ticks.y = element_blank(),axis.text.y = element_blank(), # get rid of x ticks/text
+        axis.ticks.x = element_blank(),axis.text.x = element_blank(), # get rid of y ticks/text
+        panel.background = element_blank(),
+        panel.grid = element_blank()) +
+  xlab("") +
+  ylab("") +
+  ggsave(filename = "./output/maps/medHHInc.pdf",
+         dpi = 300)
+
+ggplot(kc_f, aes(x = long, y = lat, group = group, fill = ppov)) +
+  geom_polygon(color = "white", lwd = .15) +
+  scale_fill_distiller(name="% of Persons below Poverty Line",
+                       labels = scales::percent, palette = "Purples", direction = 1) + 
+  coord_map() +
+  theme_minimal() +
+  theme(axis.ticks.y = element_blank(),axis.text.y = element_blank(), # get rid of x ticks/text
+        axis.ticks.x = element_blank(),axis.text.x = element_blank(), # get rid of y ticks/text
+        panel.background = element_blank(),
+        panel.grid = element_blank()) +
+  xlab("") +
+  ylab("") +
+  ggsave(filename = "./output/maps/ppov.pdf",
+         dpi = 300)
+
+ggplot(kc_f, aes(x = long, y = lat, group = group, fill = pforborn)) +
+  geom_polygon(color = "white", lwd = .15) +
+  scale_fill_distiller(name="% of Persons Foreign-Born",
+                       labels = scales::percent, palette = "Purples", direction = 1) + 
+  coord_map() +
+  theme_minimal() +
+  theme(axis.ticks.y = element_blank(),axis.text.y = element_blank(), # get rid of x ticks/text
+        axis.ticks.x = element_blank(),axis.text.x = element_blank(), # get rid of y ticks/text
+        panel.background = element_blank(),
+        panel.grid = element_blank()) +
+  xlab("") +
+  ylab("") +
+  ggsave(filename = "./output/maps/pforborn.pdf",
+         dpi = 300)
+
+ggplot(kc_f, aes(x = long, y = lat, group = group, fill = pforborn)) +
+  geom_polygon(color = "white", lwd = .15) +
+  scale_fill_distiller(name="% Persons Foreign-Born",
+                       labels = scales::percent, palette = "Purples", direction = 1) + 
+  coord_map() +
+  theme_minimal() +
+  theme(axis.ticks.y = element_blank(),axis.text.y = element_blank(), # get rid of x ticks/text
+        axis.ticks.x = element_blank(),axis.text.x = element_blank(), # get rid of y ticks/text
+        panel.background = element_blank(),
+        panel.grid = element_blank()) +
+  xlab("") +
+  ylab("") +
+  ggsave(filename = "./output/maps/pforborn.pdf",
+         dpi = 300)
 
 # make grid graphic for different compositions
 blk_f <- kc_f %>% 
-  mutate(race = "Non-Hispanic Black",
+  mutate(race = "Black",
          percent = pnhb) %>%
   dplyr::select(long, lat, group, race, percent, nListings)
 
@@ -238,23 +350,22 @@ hsp_f <- kc_f %>%
   dplyr::select(long, lat, group, race, percent, nListings)
 
 asi_f <- kc_f %>% 
-  mutate(race = "Non-Hispanic Asian",
+  mutate(race = "Asian",
          percent = pnha) %>%
   dplyr::select(long, lat, group, race, percent, nListings)
 
 wht_f <- kc_f %>% 
-  mutate(race = "Non-Hispanic White",
+  mutate(race = "White",
          percent = pnhw) %>%
   dplyr::select(long, lat, group, race, percent, nListings)
 
 oth_f <- kc_f %>%
-  mutate(race = "Non-Hispanic Other",
+  mutate(race = "Other",
          percent = pnho) %>%
   dplyr::select(long, lat, group, race, percent, nListings)
 
-demog_f <- bind_rows(asi_f, blk_f, hsp_f, oth_f, wht_f)
+demog_f <- bind_rows(asi_f, blk_f, hsp_f, oth_f)
 demog_f$race <- as.factor(demog_f$race)
-demog_f$race <- factor(demog_f$race, levels = levels(demog_f$race)[c(2, 3, 1, 4, 5)])
 
 ggplot(demog_f, aes(x = long, y = lat, group = group, fill = percent)) +
   facet_wrap(~ race) +
@@ -264,7 +375,7 @@ ggplot(demog_f, aes(x = long, y = lat, group = group, fill = percent)) +
   coord_map() +
   theme(strip.background = element_rect(fill = "white", color = "white")) +
   theme(strip.text = element_text(colour = "Black", size = 12)) +  
-  theme(legend.position = c(.85, .1), legend.justification = c(1, 0)) +
+  theme(legend.position = c(1.1, .1), legend.justification = c(1, 0)) +
   labs(fill = "Percent of Tract Population") +
   ggsave(filename = "./output/maps/ACS_ethrace.pdf",
          width = 12, height = 7, dpi = 300)
@@ -277,30 +388,13 @@ ggplot(wht_f, aes(x = long, y = lat, group = group, fill = percent)) +
   theme(strip.background = element_rect(fill = "white", color = "white")) +
   theme(strip.text = element_text(colour = "Black", size = 12)) +  
   theme(legend.position = c(1.05, .1), legend.justification = c(1, 0)) +
-  labs(fill = "Percent Non-Hispanic White") +
-  ggsave(filename = "./output/maps/ACS_nhwMap.pdf",
+  labs(fill = "Percent of Neighborhood Population") +
+  ggsave(filename = "./output/maps/ACS_nhw.pdf",
          width = 12, height = 7, dpi = 300)
 
-ggplot(test, aes(x = pnhb, y = nListings)) + geom_smooth() + geom_point() +
-  theme_minimal() +
-  xlab("\n% Non-Hispanic White") +
-  ylab("N Listings\n")
-  ggsave(filename = "./output/graphics/nListingNHBscatter.pdf",
-         dpi = 300)
 
+#### D. INLA models -----------------------------------------------------------
 
-
-#### E. INLA models -----------------------------------------------------------
-
-#save(test, file = "R:/Project/seattle_rental_market/scripts/spatial_epi/working.RData")
-#load("R:/Project/seattle_rental_market/scripts/spatial_epi/working.RData")
-
-library(INLA)
-  
-
-  
-
-#King County listing incidence ------------------------------------------------------------
 kc_shp <- readOGR(dsn = "./input/KCTract2010/KCTract2010.shp",
                   layer = "KCTract2010",
                   GDAL1_integer64_policy = TRUE,
@@ -316,107 +410,398 @@ kc_df <- as.tbl(kc_shp@data) #save table (now in the order of the shapefile)
 kc_adj <- poly2nb(kc_shp)
 nb2INLA("./output/graphINLA/kctract.graph", kc_adj)
 
-
 #create a couple numeric ID columns to use later for INLA 
 test$idx <- 1:nrow(test) 
 test$idxx <- test$idx
 
+#extract the dataframe to hand to INLA
 kc_df <- as.data.frame(kc_shp@data)
 
-form2 <- nListings ~ 1 + log(tpop) + nHU + pvac + pownocc + pblt14lat +
-  pnhb + phsp + pnha + pnho + medHHInc + seattle +
+### Model 0: Negative Binomial (no random effects)
+form0 <- nListings ~ 1 + log(tpop) + nHU + pforrent + pownocc + pblt14lat +
+  pnhb + phsp + pnha + pnho + medHHInc + ppov + pforborn + seattle 
+
+m0 <- inla(form0, 
+           family = "nbinomial", 
+           data = kc_df,
+           control.predictor = list(compute = TRUE),
+           control.compute = list(dic = TRUE, waic = TRUE))
+summary(m0)
+plot(m0)
+
+#predicted values
+m0median <- exp(m0$summary.linear.predictor["0.5quant"])
+m0lower <- exp(m0$summary.linear.predictor["0.025quant"])
+m0upper <- exp(m0$summary.linear.predictor["0.975quant"])
+kc_shp@data$m0median <- m0median[,1]
+kc_shp@data$m0lower <- m0lower[,1]
+kc_shp@data$m0upper <- m0upper[,1]
+kc_shp@data$m0post95wid <- kc_shp@data$m0upper - kc_shp@data$m0lower
+
+
+### Model 1: Lognormal Non-Spatial Negative Binomial Model
+form1 <- nListings ~ 1 + log(tpop) + nHU + pforrent + pownocc + pblt14lat +
+  pnhb + phsp + pnha + pnho + medHHInc + ppov + pforborn + seattle +
   f(idx, model = "iid")
 
-m2 <- inla(form2, 
-           family = "poisson", 
-           data = test,
-           control.predictor = list(compute = TRUE))
-summary(m2)
-plot(m2)
+m1 <- inla(form1, 
+           family = "nbinomial", 
+           data = kc_df,
+           control.predictor = list(compute = TRUE),
+           control.compute = list(dic = TRUE, waic = TRUE))
+summary(m1)
+plot(m1)
 
-form3 <- nListings ~ 1 + log(tpop) + nHU + pvac + pownocc + pblt14lat +
-  pnhb + phsp + pnha + pnho + medHHInc + seattle +
+#lognormal random effect medians
+m1RE <- exp(m1$summary.random$idx[5])
+kc_shp@data$m1RE <- m1RE[,1]
+
+#predicted values
+m1median <- exp(m1$summary.linear.predictor["0.5quant"])
+m1lower <- exp(m1$summary.linear.predictor["0.025quant"])
+m1upper <- exp(m1$summary.linear.predictor["0.975quant"])
+kc_shp@data$m1median <- m1median[,1]
+kc_shp@data$m1lower <- m1lower[,1]
+kc_shp@data$m1upper <- m1upper[,1]
+kc_shp@data$m1post95wid <- kc_shp@data$m1upper - kc_shp@data$m1lower
+
+
+
+### Model 2: Lognormal Spatial Negative Binomial Model
+form2 <- nListings ~ 1 + log(tpop) + nHU + pforrent + pownocc + pblt14lat +
+  pnhb + phsp + pnha + pnho + medHHInc + ppov + pforborn + seattle +
   f(idx, model = "iid") +
   f(idxx, model = "besag", graph = "./output/graphINLA/kctract.graph")
 
-m3 <- inla(form3, 
-           family = "poisson", 
-           E = nHU, 
+m2 <- inla(form2, 
+           family = "nbinomial", 
            data = kc_df,
-           control.predictor = list(compute = TRUE))
-summary(m3)
-plot(m3)
+           control.predictor = list(compute = TRUE),
+           control.compute = list(dic = TRUE, waic = TRUE))
+summary(m2)
+plot(m2)
 
-kc_df$fittedListings <- m1$summary.fitted[, "0.5quant"]
+#lognormal random effect medians
+m2RE <- exp(m2$summary.random$idx[5])
+kc_shp@data$m2RE <- m2RE[,1]
 
-kc_shp <- readOGR(dsn = "./input/KCTract2010/KCTract2010.shp",
-                  layer = "KCTract2010",
-                  GDAL1_integer64_policy = TRUE,
-                  stringsAsFactors = F, verbose = F)
-kc_shp <- kc_shp %>%
-  inner_join(kc_df)
+#spatial effect median
+m2SE <- exp(m2$summary.random$idxx[5])
+kc_shp@data$m2SE <- m2SE[,1]
 
-pdf(width = 8, height = 6, file = "./maps/smoothListing.pdf")
-spplot(kc_shp, c("nListings", "fittedListings"),
-       col.regions = brewer.pal(9, "Blues"), cuts = 8)
-dev.off()
-
-
-
-
-
-
+#predicted values
+m2median <- exp(m2$summary.linear.predictor["0.5quant"])
+m2lower <- exp(m2$summary.linear.predictor["0.025quant"])
+m2upper <- exp(m2$summary.linear.predictor["0.975quant"])
+kc_shp@data$m2median <- m2median[,1]
+kc_shp@data$m2lower <- m2lower[,1]
+kc_shp@data$m2upper <- m2upper[,1]
+kc_shp@data$m2post95wid <- kc_shp@data$m2upper - kc_shp@data$m2lower
 
 
-#Seattle listing incidence ----------------------------------------------------------
+#### Model Diagnostics --------------------------------------------------------
 
-sea_shp <- readOGR(dsn = "./sea_tract_2010/sea_tract_2010.shp",
-                   layer = "sea_tract_2010",
-                   GDAL1_integer64_policy = TRUE,
-                   stringsAsFactors = F)
-sea_adj <- poly2nb(sea_shp)
-nb2INLA("./graphINLA/seatract.graph", sea_adj)
+#gof
+rmse <- function(error)
+{
+  sqrt(mean(error^2))
+}
 
-sea_df <- as.data.frame(test) %>% filter(seattle == 1)
-sea_df$idx <- 1:nrow(sea_df)
-sea_df$idxx <- sea_df$idx
+m0mlik <- m0$mlik[1]
+m1mlik <- m1$mlik[1]
+m2mlik <- m2$mlik[1]
 
-form3 <- nListings ~ offset(log(nHU)) +  tpop + pvac + medVal + pownocc + pblt14lat +
-  pnhb + phsp + pnha + pnho + medHHInc +
-  f(idx, model = "iid") +
-  f(idxx, model = "besag", graph = "./graphINLA/seatract.graph")
+m0DIC <- m0$dic$dic
+m1DIC <- m1$dic$dic
+m2DIC <- m2$dic$dic
 
-sea_df <- as.data.frame(test)
+m0WAIC <- m0$waic$waic
+m1WAIC <- m1$waic$waic
+m2WAIC <- m2$waic$waic
 
-m3 <- inla(form3, 
-           family = "poisson", 
-           data = sea_df,
-           verbose = T,
-           control.predictor = list(compute = TRUE))
-summary(m3)
+m0RMSE <- rmse(kc_shp@data$nListings-kc_shp@data$m0median)
+m1RMSE <- rmse(kc_shp@data$nListings-kc_shp@data$m1median)
+m2RMSE <- rmse(kc_shp@data$nListings-kc_shp@data$m2median)
 
-sea_df$logListings <- log(sea_df$nListings)
-sea_df$smoothedCL <- log(m3$summary.fitted[, "mean"])
+mfit <- data.frame(
+  Model = c("GLM", "Non-Spatial RE", "Spatial RE"),
+  MLik = c(m0mlik, m1mlik, m2mlik),
+  RMSE = c(m0RMSE, m1RMSE, m2RMSE),
+  DIC = c(m0DIC, m1DIC, m2DIC),
+  WAIC = c(m0WAIC, m1WAIC, m2WAIC)
+)
 
-sea_shp <- sea_shp %>%
-  inner_join(sea_df)
+mfit
 
-pdf(width = 8, height = 6, file = "R:/Project/seattle_rental_market/report/spatial_epi/maps/smoothSeaListing.pdf")
-spplot(sea_shp, c("logListings", "smoothedCL"),
-       col.regions = brewer.pal(9, "Blues"), cuts = 8)
-dev.off()
+#maps
+kc_shp@data$id <- rownames(kc_shp@data)
+kc_f <- fortify(kc_shp)
+kc_f <- inner_join(kc_f, kc_shp@data, "id")
+
+#idx labels
+ggplot(kc_f, aes(x = long, y = lat, group = group, label = idx)) +
+  geom_polygon(fill = "grey90", color = "grey10") +
+  geom_text(aes(x = type.convert(INTPTLON10), y = type.convert(INTPTLAT10)), size = 1) +
+  coord_map() +
+  theme_minimal() +
+  theme(axis.ticks.y = element_blank(),axis.text.y = element_blank(), # get rid of x ticks/text
+        axis.ticks.x = element_blank(),axis.text.x = element_blank(), # get rid of y ticks/text
+        panel.background = element_blank(),
+        panel.grid = element_blank()) +
+  xlab("") +
+  ylab("") +
+  ggsave(filename = "./output/maps/idxLabeled.pdf",
+         width = 11, height = 8.5, dpi = 300)
+
+#median fitted value
+ggplot(kc_f, aes(x = long, y = lat, group = group, fill = log10(m0median))) +
+  geom_polygon(color = "white", lwd = .15) +
+  scale_fill_distiller(name = "Median Posterior Prediction\nN Listings (Non-Spatial)", palette = "Purples", 
+                       limits = c(0, 4),
+                       breaks = c(1, 2, 3, 4),
+                       labels = c("10", "100", "1000", "10000"),
+                       direction = 1, na.value = "grey80") + 
+  coord_map() +
+  theme_minimal() +
+  theme(axis.ticks.y = element_blank(),axis.text.y = element_blank(), # get rid of x ticks/text
+        axis.ticks.x = element_blank(),axis.text.x = element_blank(), # get rid of y ticks/text
+        panel.background = element_blank(),
+        panel.grid = element_blank()) +
+  xlab("") +
+  ylab("") +
+  ggsave(filename = "./output/maps/fittedM0.pdf",
+         dpi = 300)
+
+#median fitted value (for faceted plot)
+m0_plot1 <- ggplot(kc_f, aes(x = long, y = lat, group = group, fill = log10(m0median))) +
+  geom_polygon(color = "white", lwd = .15) +
+  scale_fill_distiller(name = "Median Posterior Prediction\nN Listings (Spatial)", palette = "Purples", 
+                       limits = c(0, 4),
+                       breaks = c(1, 2, 3, 4),
+                       labels = c("10", "100", "1000", "10000"),
+                       direction = 1, na.value = "grey80") + 
+  coord_map() +
+  theme_minimal() +
+  theme(axis.ticks.y = element_blank(),axis.text.y = element_blank(), # get rid of x ticks/text
+        axis.ticks.x = element_blank(),axis.text.x = element_blank(), # get rid of y ticks/text
+        panel.background = element_blank(),
+        panel.grid = element_blank(),
+        legend.position = "bottom",
+        legend.text = element_text(angle = 45)) +
+  xlab("") +
+  ylab("")
+
+#95% credible interval width
+m0_plot2 <- ggplot(kc_f, aes(x = long, y = lat, group = group, fill = log10(m0post95wid))) +
+  geom_polygon(color = "white", lwd = .15) +
+  scale_fill_distiller(name = "95% Credible Int. Width\n(Spatial)", palette = "Purples", 
+                       limits = c(0, 4),
+                       breaks = c(1, 2, 3, 4),
+                       labels = c("10", "100", "1000", "10000"),
+                       direction = 1, na.value = "grey80") +  
+  coord_map() +
+  theme_minimal() +
+  theme(axis.ticks.y = element_blank(),axis.text.y = element_blank(), # get rid of x ticks/text
+        axis.ticks.x = element_blank(),axis.text.x = element_blank(), # get rid of y ticks/text
+        panel.background = element_blank(),
+        panel.grid = element_blank(),
+        legend.position = "bottom",
+        legend.text = element_text(angle = 45)) +
+  xlab("") +
+  ylab("")
+
+ggsave("./output/maps/model0.pdf", arrangeGrob(m0_plot1, m0_plot2,
+                                               nrow = 1),
+       width = 12, height  = 6, dpi = 300)
+
+
+#median fitted value
+ggplot(kc_f, aes(x = long, y = lat, group = group, fill = log10(m1median))) +
+  geom_polygon(color = "white", lwd = .15) +
+  scale_fill_distiller(name = "Median Posterior Prediction\nN Listings (Non-Spatial)", palette = "Purples", 
+                       limits = c(0, 4),
+                       breaks = c(1, 2, 3, 4),
+                       labels = c("10", "100", "1000", "10000"),
+                       direction = 1, na.value = "grey80") + 
+  coord_map() +
+  theme_minimal() +
+  theme(axis.ticks.y = element_blank(),axis.text.y = element_blank(), # get rid of x ticks/text
+        axis.ticks.x = element_blank(),axis.text.x = element_blank(), # get rid of y ticks/text
+        panel.background = element_blank(),
+        panel.grid = element_blank()) +
+  xlab("") +
+  ylab("") +
+  ggsave(filename = "./output/maps/fittedM1.pdf",
+         dpi = 300)
+
+#median fitted value (for faceted plot)
+m1_plot1 <- ggplot(kc_f, aes(x = long, y = lat, group = group, fill = log10(m1median))) +
+  geom_polygon(color = "white", lwd = .15) +
+  scale_fill_distiller(name = "Median Posterior Prediction\nN Listings (Spatial)", palette = "Purples", 
+                       limits = c(0, 4),
+                       breaks = c(1, 2, 3, 4),
+                       labels = c("10", "100", "1000", "10000"),
+                       direction = 1, na.value = "grey80") + 
+  coord_map() +
+  theme_minimal() +
+  theme(axis.ticks.y = element_blank(),axis.text.y = element_blank(), # get rid of x ticks/text
+        axis.ticks.x = element_blank(),axis.text.x = element_blank(), # get rid of y ticks/text
+        panel.background = element_blank(),
+        panel.grid = element_blank(),
+        legend.position = "bottom",
+        legend.text = element_text(angle = 45)) +
+  xlab("") +
+  ylab("")
+
+#95% credible interval width
+m1_plot2 <- ggplot(kc_f, aes(x = long, y = lat, group = group, fill = log10(m1post95wid))) +
+  geom_polygon(color = "white", lwd = .15) +
+  scale_fill_distiller(name = "95% Credible Int. Width\n(Spatial)", palette = "Purples", 
+                       limits = c(0, 4),
+                       breaks = c(1, 2, 3, 4),
+                       labels = c("10", "100", "1000", "10000"),
+                       direction = 1, na.value = "grey80") +  
+  coord_map() +
+  theme_minimal() +
+  theme(axis.ticks.y = element_blank(),axis.text.y = element_blank(), # get rid of x ticks/text
+        axis.ticks.x = element_blank(),axis.text.x = element_blank(), # get rid of y ticks/text
+        panel.background = element_blank(),
+        panel.grid = element_blank(),
+        legend.position = "bottom",
+        legend.text = element_text(angle = 45)) +
+  xlab("") +
+  ylab("")
+
+ggsave("./output/maps/model1.pdf", arrangeGrob(m1_plot1, m1_plot2,
+                                               nrow = 1),
+       width = 12, height  = 6, dpi = 300)
+
+#residual map
+ggplot(kc_f, aes(x = long, y = lat, group = group, fill = nListings - m1median)) +
+  geom_polygon(color = "grey80", lwd = .15) +
+  scale_fill_gradient2(name = "Non-Spatial Model Residual") +
+  coord_map() +
+  theme_minimal() +
+  theme(axis.ticks.y = element_blank(),axis.text.y = element_blank(), # get rid of x ticks/text
+        axis.ticks.x = element_blank(),axis.text.x = element_blank(), # get rid of y ticks/text
+        panel.background = element_blank(),
+        panel.grid = element_blank()) +
+  xlab("") +
+  ylab("") +
+  ggsave(filename = "./output/maps/fittedM1_res.pdf",
+         dpi = 300)
+
+#median random effect
+ggplot(kc_f, aes(x = long, y = lat, group = group, fill = m1RE)) +
+  geom_polygon(color = "white", lwd = .15) +
+  scale_fill_distiller(name = "Median Non-Spatial Effect", palette = "Purples", 
+                       direction = 1, na.value = "grey80") + 
+  coord_map() +
+  theme_minimal() +
+  theme(axis.ticks.y = element_blank(),axis.text.y = element_blank(), # get rid of x ticks/text
+        axis.ticks.x = element_blank(),axis.text.x = element_blank(), # get rid of y ticks/text
+        panel.background = element_blank(),
+        panel.grid = element_blank()) +
+  xlab("") +
+  ylab("") +
+  ggsave(filename = "./output/maps/fittedM1RE.pdf",
+         dpi = 300)
 
 
 
+#### Model 2
 
+#median fitted value
+ggplot(kc_f, aes(x = long, y = lat, group = group, fill = log10(m2median))) +
+  geom_polygon(color = "white", lwd = .15) +
+  scale_fill_distiller(name = "Median Posterior Prediction\nN Listings (Spatial)", palette = "Purples", 
+                       limits = c(0, 4),
+                       breaks = c(1, 2, 3, 4),
+                       labels = c("10", "100", "1000", "10000"),
+                       direction = 1, na.value = "grey80") + 
+  coord_map() +
+  theme_minimal() +
+  theme(axis.ticks.y = element_blank(),axis.text.y = element_blank(), # get rid of x ticks/text
+        axis.ticks.x = element_blank(),axis.text.x = element_blank(), # get rid of y ticks/text
+        panel.background = element_blank(),
+        panel.grid = element_blank()) +
+  xlab("") +
+  ylab("") +
+  ggsave(filename = "./output/maps/fittedM2.pdf",
+         dpi = 300)
 
+#median fitted value (for faceted plot)
+m2_plot1 <- ggplot(kc_f, aes(x = long, y = lat, group = group, fill = log10(m2median))) +
+  geom_polygon(color = "white", lwd = .15) +
+  scale_fill_distiller(name = "Median Posterior Prediction\nN Listings (Spatial)", palette = "Purples", 
+                       limits = c(0, 4),
+                       breaks = c(1, 2, 3, 4),
+                       labels = c("10", "100", "1000", "10000"),
+                       direction = 1, na.value = "grey80") + 
+  coord_map() +
+  theme_minimal() +
+  theme(axis.ticks.y = element_blank(),axis.text.y = element_blank(), # get rid of x ticks/text
+        axis.ticks.x = element_blank(),axis.text.x = element_blank(), # get rid of y ticks/text
+        panel.background = element_blank(),
+        panel.grid = element_blank(),
+        legend.position = "bottom",
+        legend.text = element_text(angle = 45)) +
+  xlab("") +
+  ylab("")
 
-#### J. Close out db Connection -----------------------------------------------
+#95% credible interval width
+m2_plot2 <- ggplot(kc_f, aes(x = long, y = lat, group = group, fill = log10(m2post95wid))) +
+  geom_polygon(color = "white", lwd = .15) +
+  scale_fill_distiller(name = "95% Credible Int. Width\n(Spatial)", palette = "Purples", 
+                       limits = c(0, 4),
+                       breaks = c(1, 2, 3, 4),
+                       labels = c("10", "100", "1000", "10000"),
+                       direction = 1, na.value = "grey80") +  
+  coord_map() +
+  theme_minimal() +
+  theme(axis.ticks.y = element_blank(),axis.text.y = element_blank(), # get rid of x ticks/text
+        axis.ticks.x = element_blank(),axis.text.x = element_blank(), # get rid of y ticks/text
+        panel.background = element_blank(),
+        panel.grid = element_blank(),
+        legend.position = "bottom",
+        legend.text = element_text(angle = 45)) +
+  xlab("") +
+  ylab("")
 
-dbDisconnect(DB)
+ggsave("./output/maps/model2.pdf", arrangeGrob(m2_plot1, m2_plot2,
+                                               nrow = 1),
+       width = 12, height  = 6, dpi = 300)
 
+#median spatial effect
+ggplot(kc_f, aes(x = long, y = lat, group = group, fill = m2SE)) +
+  geom_polygon(color = "white", lwd = .15) +
+  scale_fill_distiller(name = "Median Spatial Effect", palette = "Purples", 
+                       direction = 1, na.value = "grey80") + 
+  coord_map() +
+  theme_minimal() +
+  theme(axis.ticks.y = element_blank(),axis.text.y = element_blank(), # get rid of x ticks/text
+        axis.ticks.x = element_blank(),axis.text.x = element_blank(), # get rid of y ticks/text
+        panel.background = element_blank(),
+        panel.grid = element_blank()) +
+  xlab("") +
+  ylab("") +
+  ggsave(filename = "./output/maps/fittedM2SE.pdf",
+         dpi = 300)
 
-
+#model 2 residual
+ggplot(kc_f, aes(x = long, y = lat, group = group, fill = nListings - m2median)) +
+  geom_polygon(color = "grey80", lwd = .15) +
+  scale_fill_gradient2(name = "Spatial Model Residual") +
+  coord_map() +
+  theme_minimal() +
+  theme(axis.ticks.y = element_blank(),axis.text.y = element_blank(), # get rid of x ticks/text
+        axis.ticks.x = element_blank(),axis.text.x = element_blank(), # get rid of y ticks/text
+        panel.background = element_blank(),
+        panel.grid = element_blank()) +
+  xlab("") +
+  ylab("") +
+  ggsave(filename = "./output/maps/fittedM2_res.pdf",
+         dpi = 300)
 
 
 

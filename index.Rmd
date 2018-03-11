@@ -1,4 +1,5 @@
 ---
+title: "cl-spatial-epi"
 output: 
   flexdashboard::flex_dashboard:
     orientation: rows
@@ -101,7 +102,9 @@ Row
 
 ### Welcome!
 
-This website provides supplementary information for the paper _Identifying sociodemographic variations in scraped rental housing data from King County, WA_
+This website provides supplementary information for the paper _Sociodemographic Variations in Craigslist Rental Housing Activity in King County, WA_
+
+If you want to download this project, you can download the R source code from Github [here](https://github.com/hesscl/cl-spatial-epi)
 
 Contact Chris Hess at [hesscl@uw.edu](mailto://hesscl@uw.edu) for more information about this report.
 
@@ -113,8 +116,7 @@ Row
 ```{r sea.90day}
 
 hchart(test$nListings, type = "area", name = "N Listings in Tract") %>%
-  hc_yAxis(title = list(text = "Frequency")) %>%
-  hc_exporting(enabled = TRUE) 
+  hc_yAxis(title = list(text = "Frequency"))
 
               
 ```

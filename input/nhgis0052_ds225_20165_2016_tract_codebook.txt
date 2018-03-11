@@ -1,5 +1,5 @@
 --------------------------------------------------------------------------------
-Codebook for NHGIS data file 'nhgis0051_ds225_20165_2016_tract'
+Codebook for NHGIS data file 'nhgis0052_ds225_20165_2016_tract'
 --------------------------------------------------------------------------------
  
 Contents
@@ -120,6 +120,11 @@ Tables:
     Universe:    Owner-occupied housing units
     Source code: B25077
     NHGIS code:  AF9L
+ 
+20. Allocation of Citizenship Status
+    Universe:    Total population
+    Source code: B99051
+    NHGIS code:  AF95
  
 --------------------------------------------------------------------------------
 Data Dictionary
@@ -471,6 +476,18 @@ Data Type (E):
     NHGIS code:  AF9L
         AF9LE001:    Median value (dollars)
  
+    Table 20:    Allocation of Citizenship Status
+    Universe:    Total population
+    Source code: B99051
+    NHGIS code:  AF95
+        AF95E001:    Total
+        AF95E002:    Native
+        AF95E003:    Native: Allocated
+        AF95E004:    Native: Not allocated
+        AF95E005:    Foreign born
+        AF95E006:    Foreign born: Allocated
+        AF95E007:    Foreign born: Not allocated
+ 
 Data Type (M):
     Margins of error
  
@@ -778,6 +795,18 @@ Data Type (M):
     Source code: B25077
     NHGIS code:  AF9L
         AF9LM001:    Median value (dollars)
+ 
+    Table 20:    Allocation of Citizenship Status
+    Universe:    Total population
+    Source code: B99051
+    NHGIS code:  AF95
+        AF95M001:    Total
+        AF95M002:    Native
+        AF95M003:    Native: Allocated
+        AF95M004:    Native: Not allocated
+        AF95M005:    Foreign born
+        AF95M006:    Foreign born: Allocated
+        AF95M007:    Foreign born: Not allocated
  
 --------------------------------------------------------------------------------
 Citation and Use of NHGIS Data
