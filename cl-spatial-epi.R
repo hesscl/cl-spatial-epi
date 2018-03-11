@@ -411,9 +411,10 @@ kc_adj <- poly2nb(kc_shp)
 nb2INLA("./output/graphINLA/kctract.graph", kc_adj)
 
 #create a couple numeric ID columns to use later for INLA 
+idx <- 1:nrow(kc_df) 
+idxx <- idx
 
-idx <- 1:nrow(kc_df) #INLA seems inconsistent when sourcing script, sometimes wants
-idxx <- kc_df$idx    #a standalone object, sometimes expects within df
+#INLA seems to be finicky and want either option?
 kc_df$idx <- 1:nrow(kc_df) 
 kc_df$idxx <- kc_df$idx
 
@@ -421,7 +422,7 @@ kc_df$idxx <- kc_df$idx
 kc_df <- as.data.frame(kc_shp@data)
 
 ### Model 0: Negative Binomial (no random effects)
-form2 <- nListings ~ 1 + log(tpop) + nHU + pforrent + pownocc + pblt14lat +
+form0 <- nListings ~ 1 + log(tpop) + nHU + pforrent + pownocc + pblt14lat +
   pnhb + phsp + pnha + pnho + medHHInc + ppov + pforborn + seattle
 
 m0 <- inla(form0, 
@@ -501,6 +502,7 @@ kc_shp@data$m2lower <- m2lower[,1]
 kc_shp@data$m2upper <- m2upper[,1]
 kc_shp@data$m2post95wid <- kc_shp@data$m2upper - kc_shp@data$m2lower
 
+kc_shp@data$idx <- idx
 
 #### Model Diagnostics --------------------------------------------------------
 
@@ -534,12 +536,14 @@ mfit <- data.frame(
   WAIC = c(m0WAIC, m1WAIC, m2WAIC)
 )
 
-write(xtable::xtable(mfit), "./output/modelFit.tex")
+print(xtable::xtable(mfit), type = "html", "./output/modelFit.html")
+print(xtable::xtable(mfit), type = "latex", "./output/modelFit.tex")
 
 #maps
 kc_shp@data$id <- rownames(kc_shp@data)
 kc_f <- fortify(kc_shp)
 kc_f <- inner_join(kc_f, kc_shp@data, "id")
+
 
 #idx labels
 ggplot(kc_f, aes(x = long, y = lat, group = group, label = idx)) +
