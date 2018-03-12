@@ -2,13 +2,16 @@
 title: "cl-spatial-epi"
 output: 
   flexdashboard::flex_dashboard:
-    orientation: rows
+    navbar:
+      - { title: "hesscl.com", href: "http://hesscl.com", align: right }
+    orientation: columns
     theme: bootstrap
     logo: logo.svg
     source_code: "https://github.com/hesscl/cl-spatial-epi"
 ---
 
 ```{r setup, include=FALSE}
+
 #packages
 library(tidyverse)
 library(sqldf)
@@ -23,7 +26,9 @@ library(rgeos)
 library(spdep)
 library(INLA)
 library(flexdashboard)
-library(highcharter)
+library(DT)
+library(plotly)
+library(coefINLA)
 
 #load 2012-2016 ACS data (2016 tracts same as 2010 for KC)
 census <- read_csv(file = "./input/nhgis0052_ds225_20165_2016_tract.csv")
@@ -84,8 +89,8 @@ test <- test %>%
          nownocc = AF7PE002,
          medGRentACS = AF89M001,
          medStrYr = AF8IE001,
-         medVal = AF9LE001/1000,
-         medHHInc = AF49M001/1000) %>%
+         medVal = AF9LE001,
+         medHHInc = AF49M001) %>%
   mutate(pnhw = tnhw/tpop,
          pnhb = tnhb/tpop,
          pnho = tnho/tpop,
@@ -96,39 +101,492 @@ test <- test %>%
          pforrent = ifelse(nvachu == 0, 0, AF7ZM002/nvachu),
          pownocc = nownocc/nocc,
          pblt14lat = AF8HE002/nHU) %>%
-  filter(tpop > 0)
+  filter(tpop > 0) %>%
+  select(-starts_with("AF"))
 
-thm <- hc_theme_merge(
-  hc_theme_google(),
-  hc_theme(colors = RColorBrewer::brewer.pal(3, "Purples")[-1]))
+kc_shp <- readOGR(dsn = "./input/KCTract2010/KCTract2010.shp",
+                  layer = "KCTract2010",
+                  GDAL1_integer64_policy = TRUE,
+                  stringsAsFactors = F, verbose = F)
+
+test <- test[match(kc_shp$GISJOIN, test$GISJOIN),]
+test$GISJOIN == kc_shp$GISJOIN #dbl check order
+rownames(test) <- row.names(kc_shp)
+
+#spCbind the data frame onto shapefile
+kc_shp <- maptools::spCbind(kc_shp, test) #both are complete tables of KC tracts
+kc_df <- as.tbl(kc_shp@data) #save table (now in the order of the shapefile)
+kc_adj <- poly2nb(kc_shp)
+nb2INLA("./output/graphINLA/kctract.graph", kc_adj)
+
+#create a couple numeric ID columns to use later for INLA 
+idx <- 1:nrow(kc_df) 
+idxx <- idx
+
+#INLA seems to be finicky and want either option?
+kc_df$idx <- 1:nrow(kc_df) 
+kc_df$idxx <- kc_df$idx
+
+#extract the dataframe to hand to INLA
+kc_df <- as.data.frame(kc_shp@data)
+
+### Model 0: Negative Binomial (no random effects)
+form0 <- nListings ~ 1 + log(tpop) + nHU + pforrent + pownocc + pblt14lat +
+  pnhb + phsp + pnha + pnho + medHHInc + ppov + pforborn + seattle
+
+m0 <- inla(form0, 
+           family = "nbinomial", 
+           data = kc_df,
+           control.predictor = list(compute = TRUE),
+           control.compute = list(dic = TRUE, waic = TRUE))
+
+#predicted values
+m0median <- exp(m0$summary.linear.predictor["0.5quant"])
+m0lower <- exp(m0$summary.linear.predictor["0.025quant"])
+m0upper <- exp(m0$summary.linear.predictor["0.975quant"])
+kc_shp@data$m0median <- m0median[,1]
+kc_shp@data$m0lower <- m0lower[,1]
+kc_shp@data$m0upper <- m0upper[,1]
+kc_shp@data$m0post95wid <- kc_shp@data$m0upper - kc_shp@data$m0lower
+
+
+### Model 1: Lognormal Non-Spatial Negative Binomial Model
+form1 <- nListings ~ 1 + log(tpop) + nHU + pforrent + pownocc + pblt14lat +
+  pnhb + phsp + pnha + pnho + medHHInc + ppov + pforborn + seattle +
+  f(idx, model = "iid")
+
+m1 <- inla(form1, 
+           family = "nbinomial", 
+           data = kc_df,
+           control.predictor = list(compute = TRUE),
+           control.compute = list(dic = TRUE, waic = TRUE))
+
+#lognormal random effect medians
+m1RE <- exp(m1$summary.random$idx[5])
+kc_shp@data$m1RE <- m1RE[,1]
+
+#predicted values
+m1median <- exp(m1$summary.linear.predictor["0.5quant"])
+m1lower <- exp(m1$summary.linear.predictor["0.025quant"])
+m1upper <- exp(m1$summary.linear.predictor["0.975quant"])
+kc_shp@data$m1median <- m1median[,1]
+kc_shp@data$m1lower <- m1lower[,1]
+kc_shp@data$m1upper <- m1upper[,1]
+kc_shp@data$m1post95wid <- kc_shp@data$m1upper - kc_shp@data$m1lower
+
+
+### Model 2: Lognormal Spatial Negative Binomial Model
+form2 <- nListings ~ 1 + log(tpop) + nHU + pforrent + pownocc + pblt14lat +
+  pnhb + phsp + pnha + pnho + medHHInc + ppov + pforborn + seattle +
+  f(idx, model = "iid") +
+  f(idxx, model = "besag", graph = "./output/graphINLA/kctract.graph")
+
+m2 <- inla(form2, 
+           family = "nbinomial", 
+           data = kc_df,
+           control.predictor = list(compute = TRUE),
+           control.compute = list(dic = TRUE, waic = TRUE))
+
+#lognormal random effect medians
+m2RE <- exp(m2$summary.random$idx[5])
+kc_shp@data$m2RE <- m2RE[,1]
+
+#spatial effect median
+m2SE <- exp(m2$summary.random$idxx[5])
+kc_shp@data$m2SE <- m2SE[,1]
+
+#predicted values
+m2median <- exp(m2$summary.linear.predictor["0.5quant"])
+m2lower <- exp(m2$summary.linear.predictor["0.025quant"])
+m2upper <- exp(m2$summary.linear.predictor["0.975quant"])
+kc_shp@data$m2median <- m2median[,1]
+kc_shp@data$m2lower <- m2lower[,1]
+kc_shp@data$m2upper <- m2upper[,1]
+kc_shp@data$m2post95wid <- kc_shp@data$m2upper - kc_shp@data$m2lower
+
+kc_shp@data$idx <- idx
+
+rmse <- function(error)
+{
+  sqrt(mean(error^2))
+}
+
+m0mlik <- m0$mlik[1]
+m1mlik <- m1$mlik[1]
+m2mlik <- m2$mlik[1]
+
+m0DIC <- m0$dic$dic
+m1DIC <- m1$dic$dic
+m2DIC <- m2$dic$dic
+
+m0WAIC <- m0$waic$waic
+m1WAIC <- m1$waic$waic
+m2WAIC <- m2$waic$waic
+
+m0RMSE <- rmse(kc_shp@data$nListings-kc_shp@data$m0median)
+m1RMSE <- rmse(kc_shp@data$nListings-kc_shp@data$m1median)
+m2RMSE <- rmse(kc_shp@data$nListings-kc_shp@data$m2median)
+
+mfit <- data.frame(
+  Model = c("GLM", "Non-Spatial RE", "Spatial RE"),
+  MLik = c(m0mlik, m1mlik, m2mlik),
+  RMSE = c(m0RMSE, m1RMSE, m2RMSE),
+  DIC = c(m0DIC, m1DIC, m2DIC),
+  WAIC = c(m0WAIC, m1WAIC, m2WAIC)
+)
+
+pal <- brewer.pal(7, "Purples")
+
+#maps
+kc_shp@data$id <- rownames(kc_shp@data)
+kc_f <- fortify(kc_shp)
+kc_f <- inner_join(kc_f, kc_shp@data, "id")
+
+rmse <- function(error)
+{
+  sqrt(mean(error^2))
+}
+
+m0mlik <- m0$mlik[1]
+m1mlik <- m1$mlik[1]
+m2mlik <- m2$mlik[1]
+
+m0DIC <- m0$dic$dic
+m1DIC <- m1$dic$dic
+m2DIC <- m2$dic$dic
+
+m0WAIC <- m0$waic$waic
+m1WAIC <- m1$waic$waic
+m2WAIC <- m2$waic$waic
+
+m0RMSE <- rmse(kc_shp@data$nListings-kc_shp@data$m0median)
+m1RMSE <- rmse(kc_shp@data$nListings-kc_shp@data$m1median)
+m2RMSE <- rmse(kc_shp@data$nListings-kc_shp@data$m2median)
+
+mfit <- data.frame(
+  Model = c("GLM", "Non-Spatial RE", "Spatial RE"),
+  MLik = c(m0mlik, m1mlik, m2mlik),
+  RMSE = c(m0RMSE, m1RMSE, m2RMSE),
+  DIC = c(m0DIC, m1DIC, m2DIC),
+  WAIC = c(m0WAIC, m1WAIC, m2WAIC)
+)
+
+mfit[,2:5] <- round(mfit[,2:5], 2)
+
+
+var_labs <- c(
+  `(Intercept)`="Intercept",
+  `log(tpop)`="log(Total Pop)",
+  nHU="N HU",
+  pforrent="Prp HU For Rent",
+  pblt14lat="Prp HU Blt >2014",
+  pownocc="Prp HU Own-Occ",
+  pnhb="Prp Black",
+  phsp="Prp Hispanic",
+  pnha="Prp Asian",
+  pnho="Prp Other",
+  medHHInc="Med. HH Income",
+  ppov="Poverty Rate",
+  pforborn="Prp Foreign Born",
+  seattle="Seattle"
+)
+
+var_labeller <- labeller(
+     var = var_labs
+)
 
 ```
 
 Home {data-icon="fa-home"}
 =====================================
 
-Row
+Column
 -------------------------------------
 
 ### Welcome!
 
 This website provides supplementary information for the paper _Sociodemographic Variations in Craigslist Rental Housing Activity in King County, WA_
 
-If you want to download this project, you can download the R source code from Github [here](https://github.com/hesscl/cl-spatial-epi)
+You can download the R source code and data for this project from Github [here](https://github.com/hesscl/cl-spatial-epi)
 
 Contact Chris Hess at [hesscl@uw.edu](mailto://hesscl@uw.edu) for more information about this report.
 
-Row
+_This page was last updated: `r Sys.Date()`_
+
+Column
 -------------------------------------
 
-### Density of rental listings scraped per neighborhood (census tracts)
+### Histogram of rental listings scraped per neighborhood (census tracts)
 
-```{r sea.90day}
+```{r nlistings, message=F}
 
-hchart(test$nListings, type = "area", name = "N Listings in Tract") %>%
-  hc_yAxis(title = list(text = "Frequency")) %>%
-  hc_add_theme(thm)
+nListings.gg <- ggplot(kc_shp@data, aes(x = nListings)) +
+  geom_histogram(fill = pal[3]) +
+  theme_minimal() +
+  xlab("N Listings in Neighborhood") +
+  ylab("Frequency")
 
-              
+ggplotly(nListings.gg)
+            
 ```
+
+
+Densities {data-navmenu="Description"}
+=====================================
+
+Maps {data-navmenu="Description"}
+=====================================
+
+
+
+Goodness of Fit {data-navmenu="Models"}
+=====================================
+
+Column
+-------------------------------------
+
+### Actual versus Predicted
+
+```{r avp, message=F}
+m0avp <- kc_shp@data %>%
+  mutate(model = "GLM",
+         actual = nListings,
+         predicted = m0median,
+         GISJOIN = GISJOIN) 
+
+m1avp <- kc_shp@data %>%
+  mutate(model = "Non-Spatial RE",
+         actual = nListings,
+         predicted = m1median,
+         GISJOIN = GISJOIN) 
+
+m2avp <- kc_shp@data %>%
+  mutate(model = "Spatial RE",
+         actual = nListings,
+         predicted = m2median,
+         GISJOIN = GISJOIN) 
+
+avp <- bind_rows(m0avp, m1avp, m2avp)
+
+avp.gg <- ggplot(avp, aes(x = actual, y = predicted, color = model, group = GISJOIN)) +
+  geom_point() +
+  scale_color_brewer(palette = "Purples") +
+  theme_minimal()
+
+ggplotly(avp.gg)
+            
+```
+
+Column
+-------------------------------------
+
+### Goodness-of-Fit Statistics
+
+```{r mfit}
+datatable(mfit,
+          rownames = F,
+          style = "bootstrap",
+          autoHideNavigation = T,
+          options = list(paging = F, searching = F, autoWidth = T))
+
+```
+
+
+Fixed Effects {data-navmenu="Models"}
+=====================================
+
+Column
+-------------------------------------
+
+### Non-Spatial RE Model posterior distributions (with 95% intervals)
+
+```{r m1coef, fig.dpi = 300}
+#like a ropeladder, but bayes-y 
+coefINLA(m1, labeller = var_labeller) + scale_x_continuous(limits = c(-60, 60))
+```
+
+
+Column
+-------------------------------------
+
+### Spatial RE Model Model posterior distributions (with 95% intervals)
+
+```{r m2coef, fig.dpi = 300}
+coefINLA(m2, labeller = var_labeller)+ scale_x_continuous(limits = c(-60, 60))
+```
+
+
+Random Effects {data-navmenu="Models"}
+=====================================
+Column
+-------------------------------------
+
+### Non-Spatial RE Model --- I.I.D. Random Effect
+
+```{r m1re}
+ggplot(kc_f, aes(x = long, y = lat, group = group, fill = m1RE, label = GISJOIN)) +
+  geom_polygon(color = "white", lwd = .15) +
+  scale_fill_distiller(name = "Median Non-Spatial Random Effect", palette = "Purples", 
+                       direction = 1, na.value = "grey80") + 
+  coord_map() +
+  theme_minimal() +
+  theme(axis.ticks.y = element_blank(),axis.text.y = element_blank(), # get rid of x ticks/text
+        axis.ticks.x = element_blank(),axis.text.x = element_blank(), # get rid of y ticks/text
+        panel.background = element_blank(),
+        panel.grid = element_blank(),
+        legend.position = "bottom",
+        legend.text = element_text(angle = 45)) +
+  xlab("") +
+  ylab("")
+```
+
+### 
+
+Column
+-------------------------------------
+
+### Spatial RE Model --- I.I.D. Random Effect
+
+```{r m2re}
+ggplot(kc_f, aes(x = long, y = lat, group = group, fill = m2RE, label = GISJOIN)) +
+  geom_polygon(color = "white", lwd = .15) +
+  scale_fill_distiller(name = "Median Non-Spatial Random Effect", palette = "Purples", 
+                       direction = 1, na.value = "grey80") + 
+  coord_map() +
+  theme_minimal() +
+  theme(axis.ticks.y = element_blank(),axis.text.y = element_blank(), # get rid of x ticks/text
+        axis.ticks.x = element_blank(),axis.text.x = element_blank(), # get rid of y ticks/text
+        panel.background = element_blank(),
+        panel.grid = element_blank(),
+        legend.position = "bottom",
+        legend.text = element_text(angle = 45)) +
+  xlab("") +
+  ylab("")
+```
+
+### Spatial RE Model --- ICAR Spatial Effect
+
+```{r m2se}
+ggplot(kc_f, aes(x = long, y = lat, group = group, fill = m2SE, label = GISJOIN)) +
+  geom_polygon(color = "white", lwd = .15) +
+  scale_fill_distiller(name = "Median Spatial Random Effect", palette = "Purples", 
+                       direction = 1, na.value = "grey80") + 
+  coord_map() +
+  theme_minimal() +
+  theme(axis.ticks.y = element_blank(),axis.text.y = element_blank(), # get rid of x ticks/text
+        axis.ticks.x = element_blank(),axis.text.x = element_blank(), # get rid of y ticks/text
+        panel.background = element_blank(),
+        panel.grid = element_blank(),
+        legend.position = "bottom",
+        legend.text = element_text(angle = 45)) +
+  xlab("") +
+  ylab("")
+```
+
+
+Fitted Values {data-navmenu="Models"}
+=====================================
+
+Column
+-------------------------------------
+
+### Non-Spatial RE Model --- Median Fitted Values
+
+```{r m1fit}
+#median fitted value (for faceted plot)
+ggplot(kc_f, aes(x = long, y = lat, group = group, fill = log10(m1median), label = GISJOIN)) +
+  geom_polygon(color = "white", lwd = .15) +
+  scale_fill_distiller(name = "Median Posterior Prediction\nN Listings (Non-Spatial)", palette = "Purples", 
+                       limits = c(0, 4),
+                       breaks = c(1, 2, 3, 4),
+                       labels = c("10", "100", "1000", "10000"),
+                       direction = 1, na.value = "grey80") + 
+  coord_map() +
+  theme_minimal() +
+  theme(axis.ticks.y = element_blank(),axis.text.y = element_blank(), # get rid of x ticks/text
+        axis.ticks.x = element_blank(),axis.text.x = element_blank(), # get rid of y ticks/text
+        panel.background = element_blank(),
+        panel.grid = element_blank(),
+        legend.position = "bottom",
+        legend.text = element_text(angle = 45)) +
+  xlab("") +
+  ylab("")
+```
+
+### Non-Spatial RE Model --- 95% Interval
+
+```{r m1cred}
+#95% credible interval width
+ggplot(kc_f, aes(x = long, y = lat, group = group, fill = log10(m1post95wid), label = GISJOIN)) +
+  geom_polygon(color = "white", lwd = .15) +
+  scale_fill_distiller(name = "95% Credible Int. Width\n(Non-Spatial)", palette = "Purples", 
+                       limits = c(0, 4),
+                       breaks = c(1, 2, 3, 4),
+                       labels = c("10", "100", "1000", "10000"),
+                       direction = 1, na.value = "grey80") +  
+  coord_map() +
+  theme_minimal() +
+  theme(axis.ticks.y = element_blank(),axis.text.y = element_blank(), # get rid of x ticks/text
+        axis.ticks.x = element_blank(),axis.text.x = element_blank(), # get rid of y ticks/text
+        panel.background = element_blank(),
+        panel.grid = element_blank(),
+        legend.position = "bottom",
+        legend.text = element_text(angle = 45)) +
+  xlab("") +
+  ylab("") 
+```
+
+
+Column
+-------------------------------------
+
+### Spatial RE Model --- Median Fitted Values
+
+```{r m2fit}
+#median fitted value (for faceted plot)
+ggplot(kc_f, aes(x = long, y = lat, group = group, fill = log10(m2median), label = GISJOIN)) +
+  geom_polygon(color = "white", lwd = .15) +
+  scale_fill_distiller(name = "Median Posterior Prediction\nN Listings (Spatial)", palette = "Purples", 
+                       limits = c(0, 4),
+                       breaks = c(1, 2, 3, 4),
+                       labels = c("10", "100", "1000", "10000"),
+                       direction = 1, na.value = "grey80") + 
+  coord_map() +
+  theme_minimal() +
+  theme(axis.ticks.y = element_blank(),axis.text.y = element_blank(), # get rid of x ticks/text
+        axis.ticks.x = element_blank(),axis.text.x = element_blank(), # get rid of y ticks/text
+        panel.background = element_blank(),
+        panel.grid = element_blank(),
+        legend.position = "bottom",
+        legend.text = element_text(angle = 45)) +
+  xlab("") +
+  ylab("")
+```
+
+### Spatial RE Model --- 95% Interval
+
+```{r m2cred}
+#95% credible interval width
+ggplot(kc_f, aes(x = long, y = lat, group = group, fill = log10(m2post95wid), label = GISJOIN)) +
+  geom_polygon(color = "white", lwd = .15) +
+  scale_fill_distiller(name = "95% Credible Int. Width\n(Spatial)", palette = "Purples", 
+                       limits = c(0, 4),
+                       breaks = c(1, 2, 3, 4),
+                       labels = c("10", "100", "1000", "10000"),
+                       direction = 1, na.value = "grey80") +  
+  coord_map() +
+  theme_minimal() +
+  theme(axis.ticks.y = element_blank(),axis.text.y = element_blank(), # get rid of x ticks/text
+        axis.ticks.x = element_blank(),axis.text.x = element_blank(), # get rid of y ticks/text
+        panel.background = element_blank(),
+        panel.grid = element_blank(),
+        legend.position = "bottom",
+        legend.text = element_text(angle = 45)) +
+  xlab("") +
+  ylab("") 
+```
+
+
+
+
 

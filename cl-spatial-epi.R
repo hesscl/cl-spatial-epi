@@ -1,10 +1,10 @@
-#### Incidence Rates of Craigslist Rental Listing -----------------------------
+#### Frequency of Craigslist Rental Listings ----------------------------------
 #### GBH Spatial Epidemiology Project
 
 #### Preamble -----------------------------------------------------------------
 
 #packages
-library(tidyverse)
+library(tidyverse) 
 library(sqldf)
 library(ggthemes)
 library(gridExtra)
@@ -16,6 +16,7 @@ library(rgdal)
 library(rgeos)
 library(spdep)
 library(INLA)
+library(coefINLA) #devtools::install_github("hesscl/coefINLA")
 
 #setwd to location of file (REQUIRES RSTUDIO)
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
@@ -79,22 +80,22 @@ test <- test %>%
          nvachu = AF7OE003,
          nforrent = AF7ZM002,
          nocc =  AF7OE002,
-         ppov = (AF43E002+AF43E003)/AF43E001,
+         ppov = ((AF43E002+AF43E003)/AF43E001),
          nownocc = AF7PE002,
          medGRentACS = AF89M001,
          medStrYr = AF8IE001,
-         medVal = AF9LE001/1000,
-         medHHInc = AF49M001/1000) %>%
-  mutate(pnhw = tnhw/tpop,
-         pnhb = tnhb/tpop,
-         pnho = tnho/tpop,
-         pnha = tnha/tpop,
-         phsp = thsp/tpop,
-         pforborn = nforborn/tpop,
-         pvac = nvachu/nHU,
-         pforrent = ifelse(nvachu == 0, 0, AF7ZM002/nvachu),
-         pownocc = nownocc/nocc,
-         pblt14lat = AF8HE002/nHU) %>%
+         medVal = AF9LE001,
+         medHHInc = AF49M001) %>%
+  mutate(pnhw = (tnhw/tpop),
+         pnhb = (tnhb/tpop),
+         pnho = (tnho/tpop),
+         pnha = (tnha/tpop),
+         phsp = (thsp/tpop),
+         pforborn = (nforborn/tpop),
+         pvac = (nvachu/nHU),
+         pforrent = ifelse(nvachu == 0, 0, (AF7ZM002/nvachu)),
+         pownocc = (nownocc/nocc),
+         pblt14lat = (AF8HE002/nHU)) %>%
   filter(tpop > 0)
 
 
@@ -543,6 +544,45 @@ print(xtable::xtable(mfit), type = "latex", "./output/modelFit.tex")
 kc_shp@data$id <- rownames(kc_shp@data)
 kc_f <- fortify(kc_shp)
 kc_f <- inner_join(kc_f, kc_shp@data, "id")
+
+var_labs <- c(
+  `(Intercept)`="Intercept",
+  `log(tpop)`="log(Total Pop)",
+  nHU="N HU",
+  pforrent="Prp HU For Rent",
+  pblt14lat="Prp HU Blt >2014",
+  pownocc="Prp HU Own-Occ",
+  pnhb="Prp Black",
+  phsp="Prp Hispanic",
+  pnha="Prp Asian",
+  pnho="Prp Other",
+  medHHInc="Med. HH Income",
+  ppov="Poverty Rate",
+  pforborn="Prp Foreign Born",
+  seattle="Seattle"
+)
+
+var_labeller <- labeller(
+     var = var_labs
+)
+
+coefINLA(m0, exp = T, labeller = var_labeller) + 
+  labs(title = "GLM Posterior Distributions") +
+  ggsave(filename = "./output/graphics/coefM0.pdf",
+         width = 8.5, height = 11)
+
+coefINLA(m1, exp = T, labeller = var_labeller) + 
+  labs(title = "Non-Spatial RE Posterior Distributions") +
+ggsave(filename = "./output/graphics/coefM1.pdf",
+       width = 8.5, height = 11)
+
+coefINLA(m2, exp = T, labeller = var_labeller) + 
+  labs(title = "Spatial RE Posterior Distributions") +
+ggsave(filename = "./output/graphics/coefM2.pdf",
+       width = 8.5, height = 11)
+
+
+
 
 
 #idx labels
