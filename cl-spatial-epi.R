@@ -505,7 +505,7 @@ kc_shp@data$m2post95wid <- kc_shp@data$m2upper - kc_shp@data$m2lower
 
 kc_shp@data$idx <- idx
 
-#### Model Diagnostics --------------------------------------------------------
+#### E. Model Diagnostics -----------------------------------------------------
 
 #gof
 rmse <- function(error)
@@ -513,22 +513,27 @@ rmse <- function(error)
   sqrt(mean(error^2))
 }
 
+#marginal likelihood
 m0mlik <- m0$mlik[1]
 m1mlik <- m1$mlik[1]
 m2mlik <- m2$mlik[1]
 
+#DIC
 m0DIC <- m0$dic$dic
 m1DIC <- m1$dic$dic
 m2DIC <- m2$dic$dic
 
+#WAIC
 m0WAIC <- m0$waic$waic
 m1WAIC <- m1$waic$waic
 m2WAIC <- m2$waic$waic
 
+#RMSE
 m0RMSE <- rmse(kc_shp@data$nListings-kc_shp@data$m0median)
 m1RMSE <- rmse(kc_shp@data$nListings-kc_shp@data$m1median)
 m2RMSE <- rmse(kc_shp@data$nListings-kc_shp@data$m2median)
 
+#compile df
 mfit <- data.frame(
   Model = c("GLM", "Non-Spatial RE", "Spatial RE"),
   MLik = c(m0mlik, m1mlik, m2mlik),
@@ -537,14 +542,16 @@ mfit <- data.frame(
   WAIC = c(m0WAIC, m1WAIC, m2WAIC)
 )
 
+#save mfit to files
 print(xtable::xtable(mfit), type = "html", "./output/modelFit.html")
 print(xtable::xtable(mfit), type = "latex", "./output/modelFit.tex")
 
-#maps
+#for maps
 kc_shp@data$id <- rownames(kc_shp@data)
 kc_f <- fortify(kc_shp)
 kc_f <- inner_join(kc_f, kc_shp@data, "id")
 
+#labels for coefINLA
 var_labs <- c(
   `(Intercept)`="Intercept",
   `log(tpop)`="log(Total Pop)",
@@ -562,28 +569,33 @@ var_labs <- c(
   seattle="Seattle"
 )
 
+#labeller for coefINLA
 var_labeller <- labeller(
      var = var_labs
 )
 
+#coefINLA ropeladder-like plots
 coefINLA(m0, exp = T, labeller = var_labeller) + 
-  labs(title = "GLM Posterior Distributions") +
+  labs(title = "GLM Posterior Distributions",
+       subtitle = "with 95% interval") +
   ggsave(filename = "./output/graphics/coefM0.pdf",
          width = 8.5, height = 11)
 
 coefINLA(m1, exp = T, labeller = var_labeller) + 
-  labs(title = "Non-Spatial RE Posterior Distributions") +
+  labs(title = "Non-Spatial RE Posterior Distributions",
+       subtitle = "with 95% interval") +
 ggsave(filename = "./output/graphics/coefM1.pdf",
        width = 8.5, height = 11)
 
 coefINLA(m2, exp = T, labeller = var_labeller) + 
-  labs(title = "Spatial RE Posterior Distributions") +
+  labs(title = "Spatial RE Posterior Distributions",
+       subtitle = "with 95% interval") +
 ggsave(filename = "./output/graphics/coefM2.pdf",
        width = 8.5, height = 11)
 
 
 
-
+### Spatial visualizations for models
 
 #idx labels
 ggplot(kc_f, aes(x = long, y = lat, group = group, label = idx)) +
