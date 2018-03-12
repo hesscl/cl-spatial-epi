@@ -43,8 +43,7 @@ if(file.exists("../data/cl/craigslistDB.sqlite")){
     dplyr::select(listingMoYr, GISJOIN, seattle, matchAddress, matchAddress2, matchType, cleanBeds, cleanRent) %>% #SELECT these columns
     collect %>% #bring db query into memory
     mutate(listingMoYr = as.Date(listingMoYr)) %>%
-    filter(listingMoYr >= as.Date("2017-03-01"),
-           listingMoYr < as.Date("2018-03-01")) %>% #a year of listings
+    filter(listingMoYr < "2018-03-12") %>% #everything up till march 12, 2018  (i.e cut off new data)
     filter(!grepl("Google", matchType)) %>% #no Google geocodes, only Smartystreets (precise to Zip9)
     distinct(matchAddress, matchAddress2, cleanBeds, cleanRent, cleanSqft, .keep_all = T) %>% #dedupe unique address-bed-rent combos
     group_by(GISJOIN) %>% #group listings by tract
