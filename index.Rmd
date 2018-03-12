@@ -29,7 +29,6 @@ library(flexdashboard)
 library(DT)
 library(plotly)
 library(coefINLA)
-library(crosstalk)
 
 #load 2012-2016 ACS data (2016 tracts same as 2010 for KC)
 census <- read_csv(file = "./input/nhgis0052_ds225_20165_2016_tract.csv")
@@ -159,7 +158,6 @@ oth <- kc_df %>%
 
 race_dens <- bind_rows(asi, blk, hsp, oth, wht)
 race_dens$race <- as.factor(race_dens$race)
-sd <- SharedData$new(race_dens, ~race)
 
 ### Model 0: Negative Binomial (no random effects)
 form0 <- nListings ~ 1 + log(tpop) + nHU + pforrent + pownocc + pblt14lat +
@@ -478,7 +476,7 @@ Column
 ### Boxplot of Racial/Ethnic Compositions
 
 ```{r raceeth1}
-raceeth1 <- ggplot(sd, aes(x = race, y = percent, group = race, color = race)) + 
+raceeth1 <- ggplot(race_dens, aes(x = race, y = percent, group = race, color = race)) + 
   geom_boxplot() +
   scale_fill_brewer(palette = "Set1") +
   theme_minimal() +
@@ -494,7 +492,7 @@ Column
 ### Smoothed Fit of N Listings ~ Racial/Ethnic Composition
 
 ```{r raceeth2}
-raceeth2 <- ggplot(sd, aes(x = percent, y = nListings, group = race, color = race)) + 
+raceeth2 <- ggplot(race_dens, aes(x = percent, y = nListings, group = race, color = race)) + 
   geom_smooth(se = F) + 
   scale_x_continuous(labels = scales::percent) +
   scale_fill_brewer(palette = "Set1") +
@@ -571,11 +569,11 @@ Column
 ```{r m1coef, fig.dpi = 300, fig.height=6, fig.width=6}
 #like a ropeladder, but bayes-y 
 c1 <- coefINLA(m1, labeller = var_labeller) + 
-  scale_x_continuous(limits = c(-60, 60)) +
+  scale_x_continuous(limits = c(-20, 20)) +
   xlab("Exponentiated Coefficients")
 
 ggplotly(c1, tooltip = c("var", "med")) %>%
-  layout(margin = list(r = 125))
+  layout(margin = list(r = 125, b = 50))
 ```
 
 
@@ -586,11 +584,11 @@ Column
 
 ```{r m2coef, fig.dpi = 300, fig.height=6, fig.width=6}
 c2 <- coefINLA(m2, labeller = var_labeller) + 
-  scale_x_continuous(limits = c(-60, 60)) +
+  scale_x_continuous(limits = c(-20, 20)) +
   xlab("Exponentiated Coefficients")
 
 ggplotly(c2, tooltip = c("var", "med")) %>%
-  layout(margin = list(r = 125))
+  layout(margin = list(r = 125, b = 50))
 ```
 
 
