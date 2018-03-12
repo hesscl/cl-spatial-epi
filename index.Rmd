@@ -571,10 +571,11 @@ Column
 ```{r m1coef, fig.dpi = 300, fig.height=6, fig.width=6}
 #like a ropeladder, but bayes-y 
 c1 <- coefINLA(m1, labeller = var_labeller) + 
-  scale_x_continuous(limits = c(-60, 60))
+  scale_x_continuous(limits = c(-60, 60)) +
+  xlab("Exponentiated Coefficients")
 
 ggplotly(c1, tooltip = c("var", "med")) %>%
-  layout(margin = list(l = 75))
+  layout(margin = list(r = 125))
 ```
 
 
@@ -585,10 +586,11 @@ Column
 
 ```{r m2coef, fig.dpi = 300, fig.height=6, fig.width=6}
 c2 <- coefINLA(m2, labeller = var_labeller) + 
-  scale_x_continuous(limits = c(-60, 60))
+  scale_x_continuous(limits = c(-60, 60)) +
+  xlab("Exponentiated Coefficients")
 
 ggplotly(c2, tooltip = c("var", "med")) %>%
-  layout(margin = list(l = 75))
+  layout(margin = list(r = 125))
 ```
 
 
