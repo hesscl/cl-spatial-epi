@@ -51,7 +51,8 @@ if(file.exists("../data/cl/craigslistDB.sqlite")){
     filter(GISJOIN %in% kc_shp@data$GISJOIN) %>% #filter to KC only (db has metro area)
     dplyr::select(listingMoYr, GISJOIN, seattle, matchAddress, matchAddress2, matchType, cleanBeds, cleanRent) %>% #SELECT these columns
     collect %>% #bring db query into memory
-    filter(year(listingMoYr) == 2017) %>% #2017 listings only
+    mutate(listingMoYr = as.Date(listingMoYr)) %>%
+    filter(listingMoYr < "2018-03-12") %>% #everything up till march 12, 2018  (i.e cut off new data)
     filter(!grepl("Google", matchType)) %>% #no Google geocodes, only Smartystreets (precise to Zip9)
     distinct(matchAddress, matchAddress2, cleanBeds, cleanRent, cleanSqft, .keep_all = T) %>% #dedupe unique address-bed-rent combos
     group_by(GISJOIN) %>% #group listings by tract
@@ -183,7 +184,7 @@ kc_shp@data$m0post95wid <- kc_shp@data$m0upper - kc_shp@data$m0lower
 
 ### Model 1: Lognormal Non-Spatial Negative Binomial Model
 form1 <- nListings ~ 1 + log(tpop) + nHU + pforrent + pownocc + pblt14lat +
-  pnhb + phsp + pnha + pnho + medHHInc + ppov * pforborn + seattle +
+  pnhb + phsp + pnha + pnho + medHHInc + ppov + pforborn + seattle +
   f(idx, model = "iid")
 
 m1 <- inla(form1, 
@@ -575,7 +576,7 @@ c1 <- coefINLA(m1, labeller = var_labeller) +
   xlab("Exponentiated Coefficients")
 
 ggplotly(c1, tooltip = c("var", "med")) %>%
-  layout(margin = list(r = 125, b = 50))
+  layout(margin = list(r = 125, b = 100))
 ```
 
 
@@ -590,7 +591,7 @@ c2 <- coefINLA(m2, labeller = var_labeller) +
   xlab("Exponentiated Coefficients")
 
 ggplotly(c2, tooltip = c("var", "med")) %>%
-  layout(margin = list(r = 125, b = 50))
+  layout(margin = list(r = 125, b = 100))
 ```
 
 
