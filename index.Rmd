@@ -337,7 +337,7 @@ Column
 
 ### Welcome!
 
-This website provides supplementary information for the paper _Sociodemographic Variations in Craigslist Rental Housing Activity in King County, WA_
+This website provides supplementary information for the paper _Sociodemographic and Spatial Variations in Craigslist Rental Housing Activity_
 
 You can download the R source code and data for this project from Github [here](https://github.com/hesscl/cl-spatial-epi)
 

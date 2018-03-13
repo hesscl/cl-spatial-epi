@@ -264,7 +264,6 @@ ggplot(kc_f, aes(x = long, y = lat, group = group, fill = nforrent)) +
   ggsave(filename = "./output/maps/ACS_forrent.pdf",
          dpi = 300)
 
-
 ggplot(kc_f, aes(x = long, y = lat, group = group, fill = log10(nListings))) +
   geom_polygon(color = "white", lwd = .15) +
   scale_fill_distiller(name="N Listings", palette = "Purples", 
@@ -282,6 +281,24 @@ ggplot(kc_f, aes(x = long, y = lat, group = group, fill = log10(nListings))) +
   ylab("") +
   ggsave(filename = "./output/maps/log10nListings.pdf",
          dpi = 300)
+
+ggplot(kc_f, aes(x = long, y = lat, group = group, fill = log10(nListings))) +
+  geom_polygon(color = "white", lwd = .15) +
+  scale_fill_viridis_c(name="N Listings",
+                       limits = c(0, 4),
+                       breaks = c(1, 2, 3, 4),
+                       labels = c("10", "100", "1000", "10000"),
+                       direction = 1, na.value = "grey80") + 
+  coord_map() +
+  theme_minimal() +
+  theme(axis.ticks.y = element_blank(),axis.text.y = element_blank(), # get rid of x ticks/text
+        axis.ticks.x = element_blank(),axis.text.x = element_blank(), # get rid of y ticks/text
+        panel.background = element_blank(),
+        panel.grid = element_blank()) +
+  xlab("") +
+  ylab("") +
+  ggsave(filename = "./output/maps/log10nListings_vir.pdf",
+         width = 6, height = 4, dpi = 300)
 
 ggplot(kc_f, aes(x = long, y = lat, group = group, fill = medHHInc)) +
   geom_polygon(color = "white", lwd = .15) +
@@ -581,20 +598,23 @@ var_labeller <- labeller(
 coefINLA(m0, exp = T, labeller = var_labeller) + 
   labs(title = "GLM Posterior Distributions",
        subtitle = "with 95% interval") +
+  xlab("\nExponentiated Coefficients") +
   ggsave(filename = "./output/graphics/coefM0.pdf",
-         width = 8.5, height = 11)
+         width = 6, height = 6)
 
 coefINLA(m1, exp = T, labeller = var_labeller) + 
   labs(title = "Non-Spatial RE Posterior Distributions",
        subtitle = "with 95% interval") +
+  xlab("\nExponentiated Coefficients") +
 ggsave(filename = "./output/graphics/coefM1.pdf",
-       width = 8.5, height = 11)
+       width = 6, height = 6)
 
 coefINLA(m2, exp = T, labeller = var_labeller) + 
   labs(title = "Spatial RE Posterior Distributions",
        subtitle = "with 95% interval") +
+  xlab("\nExponentiated Coefficients") +
 ggsave(filename = "./output/graphics/coefM2.pdf",
-       width = 8.5, height = 11)
+       width = 6, height = 4)
 
 
 
