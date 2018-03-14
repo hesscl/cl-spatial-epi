@@ -96,7 +96,7 @@ test <- test %>%
          phsp = (thsp/tpop),
          pforborn = (nforborn/tpop),
          pvac = (nvachu/nHU),
-         pforrent = ifelse(nvachu == 0, 0, (AF7ZM002/nvachu)),
+         pforrent = ifelse(nHU == 0, 0, (AF7ZM002/nHU)),
          pownocc = (nownocc/nocc),
          pblt14lat = (AF8HE002/nHU)) %>%
   filter(tpop > 0)
@@ -293,6 +293,8 @@ ggplot(kc_f, aes(x = long, y = lat, group = group, fill = log10(nListings))) +
   theme_minimal() +
   theme(axis.ticks.y = element_blank(),axis.text.y = element_blank(), # get rid of x ticks/text
         axis.ticks.x = element_blank(),axis.text.x = element_blank(), # get rid of y ticks/text
+        legend.text = element_text(size = 8),
+        legend.title = element_text(size = 10),
         panel.background = element_blank(),
         panel.grid = element_blank()) +
   xlab("") +
@@ -329,6 +331,24 @@ ggplot(kc_f, aes(x = long, y = lat, group = group, fill = ppov)) +
   ggsave(filename = "./output/maps/ppov.pdf",
          dpi = 300)
 
+ggplot(kc_f, aes(x = long, y = lat, group = group, fill = ppov)) +
+  geom_polygon(color = "white", lwd = .15) +
+  scale_fill_viridis_c(name="% of Persons\nbelow Poverty Line",
+                       labels = scales::percent, direction = 1) + 
+  coord_map() +
+  theme_minimal() +
+  theme(axis.ticks.y = element_blank(),axis.text.y = element_blank(), # get rid of x ticks/text
+        axis.ticks.x = element_blank(),axis.text.x = element_blank(), # get rid of y ticks/text
+        panel.background = element_blank(),
+        panel.grid = element_blank(),
+        legend.position = "right",
+        legend.title = element_text(size = 10),
+        legend.text = element_text(size = 8)) +
+  xlab("") +
+  ylab("") +
+  ggsave(filename = "./output/maps/ppov_vir.pdf",
+         width = 6, height = 4, dpi = 300)
+
 ggplot(kc_f, aes(x = long, y = lat, group = group, fill = pforborn)) +
   geom_polygon(color = "white", lwd = .15) +
   scale_fill_distiller(name="% of Persons Foreign-Born",
@@ -344,20 +364,6 @@ ggplot(kc_f, aes(x = long, y = lat, group = group, fill = pforborn)) +
   ggsave(filename = "./output/maps/pforborn.pdf",
          dpi = 300)
 
-ggplot(kc_f, aes(x = long, y = lat, group = group, fill = pforborn)) +
-  geom_polygon(color = "white", lwd = .15) +
-  scale_fill_distiller(name="% Persons Foreign-Born",
-                       labels = scales::percent, palette = "Purples", direction = 1) + 
-  coord_map() +
-  theme_minimal() +
-  theme(axis.ticks.y = element_blank(),axis.text.y = element_blank(), # get rid of x ticks/text
-        axis.ticks.x = element_blank(),axis.text.x = element_blank(), # get rid of y ticks/text
-        panel.background = element_blank(),
-        panel.grid = element_blank()) +
-  xlab("") +
-  ylab("") +
-  ggsave(filename = "./output/maps/pforborn.pdf",
-         dpi = 300)
 
 # make grid graphic for different compositions
 blk_f <- kc_f %>% 
@@ -431,6 +437,7 @@ kc_df <- as.tbl(kc_shp@data) #save table (now in the order of the shapefile)
 kc_adj <- poly2nb(kc_shp)
 nb2INLA("./output/graphINLA/kctract.graph", kc_adj)
 
+
 #create a couple numeric ID columns to use later for INLA 
 idx <- 1:nrow(kc_df) 
 idxx <- idx
@@ -443,7 +450,7 @@ kc_df$idxx <- kc_df$idx
 kc_df <- as.data.frame(kc_shp@data)
 
 ### Model 0: Negative Binomial (no random effects)
-form0 <- nListings ~ 1 + log(tpop) + nHU + pforrent + pownocc + pblt14lat +
+form0 <- nListings ~ 1 + log(nHU) + pforrent + pownocc + pblt14lat +
   pnhb + phsp + pnha + pnho + medHHInc + ppov + pforborn + seattle
 
 m0 <- inla(form0, 
@@ -465,7 +472,7 @@ kc_shp@data$m0post95wid <- kc_shp@data$m0upper - kc_shp@data$m0lower
 
 
 ### Model 1: Lognormal Non-Spatial Negative Binomial Model
-form1 <- nListings ~ 1 + log(tpop) + nHU + pforrent + pownocc + pblt14lat +
+form1 <- nListings ~ 1 + log(nHU) + pforrent + pownocc + pblt14lat +
   pnhb + phsp + pnha + pnho + medHHInc + ppov + pforborn + seattle +
   f(idx, model = "iid")
 
@@ -493,7 +500,7 @@ kc_shp@data$m1post95wid <- kc_shp@data$m1upper - kc_shp@data$m1lower
 
 
 ### Model 2: Lognormal Spatial Negative Binomial Model
-form2 <- nListings ~ 1 + log(tpop) + nHU + pforrent + pownocc + pblt14lat +
+form2 <- nListings ~ 1 + log(nHU) + pforrent + pownocc + pblt14lat +
   pnhb + phsp + pnha + pnho + medHHInc + ppov + pforborn + seattle +
   f(idx, model = "iid") +
   f(idxx, model = "besag", graph = "./output/graphINLA/kctract.graph")
@@ -523,6 +530,89 @@ kc_shp@data$m2lower <- m2lower[,1]
 kc_shp@data$m2upper <- m2upper[,1]
 kc_shp@data$m2post95wid <- kc_shp@data$m2upper - kc_shp@data$m2lower
 
+### Model 3: GLM Poisson Model
+form3 <- nListings ~ 1 + log(nHU) + pforrent + pownocc + pblt14lat +
+  pnhb + phsp + pnha + pnho + medHHInc + ppov + pforborn + seattle
+
+m3 <- inla(form3, 
+           family = "poisson", 
+           data = kc_df,
+           control.predictor = list(compute = TRUE),
+           control.compute = list(dic = TRUE, waic = TRUE))
+summary(m3)
+plot(m3)
+
+#predicted values
+m3median <- exp(m3$summary.linear.predictor["0.5quant"])
+m3lower <- exp(m3$summary.linear.predictor["0.025quant"])
+m3upper <- exp(m3$summary.linear.predictor["0.975quant"])
+kc_shp@data$m3median <- m3median[,1]
+kc_shp@data$m3lower <- m3lower[,1]
+kc_shp@data$m3upper <- m3upper[,1]
+kc_shp@data$m3post95wid <- kc_shp@data$m3upper - kc_shp@data$m3lower
+
+
+### Model 4: Lognormal Non-Spatial Poisson Model
+form4 <- nListings ~ 1 + log(nHU) + pforrent + pownocc + pblt14lat +
+  pnhb + phsp + pnha + pnho + medHHInc + ppov + pforborn + seattle +
+  f(idx, model = "iid")
+
+m4 <- inla(form4, 
+           family = "poisson", 
+           data = kc_df,
+           control.predictor = list(compute = TRUE),
+           control.compute = list(dic = TRUE, waic = TRUE))
+summary(m4)
+plot(m4)
+
+#lognormal random effect medians
+m4RE <- exp(m4$summary.random$idx[5])
+kc_shp@data$m4RE <- m4RE[,1]
+
+#predicted values
+m4median <- exp(m4$summary.linear.predictor["0.5quant"])
+m4lower <- exp(m4$summary.linear.predictor["0.025quant"])
+m4upper <- exp(m4$summary.linear.predictor["0.975quant"])
+kc_shp@data$m4median <- m4median[,1]
+kc_shp@data$m4lower <- m4lower[,1]
+kc_shp@data$m4upper <- m4upper[,1]
+kc_shp@data$m4post95wid <- kc_shp@data$m4upper - kc_shp@data$m4lower
+
+
+### Model 5: Lognormal Spatial Poisson Model
+form5 <- nListings ~ 1 + log(nHU) + pforrent + pownocc + pblt14lat +
+  pnhb + phsp + pnha + pnho + medHHInc + ppov + pforborn + seattle +
+  f(idx, model = "iid") +
+  f(idxx, model = "besag", graph = "./output/graphINLA/kctract.graph")
+
+m5 <- inla(form5, 
+           family = "poisson", 
+           data = kc_df,
+           control.predictor = list(compute = TRUE),
+           control.compute = list(dic = TRUE, waic = TRUE))
+summary(m5)
+plot(m5)
+
+#lognormal random effect medians
+m5RE <- exp(m5$summary.random$idx[5])
+kc_shp@data$m5RE <- m5RE[,1]
+
+#spatial effect median
+m5SE <- exp(m5$summary.random$idxx[5])
+kc_shp@data$m5SE <- m5SE[,1]
+
+#predicted values
+m5median <- exp(m5$summary.linear.predictor["0.5quant"])
+m5lower <- exp(m5$summary.linear.predictor["0.025quant"])
+m5upper <- exp(m5$summary.linear.predictor["0.975quant"])
+kc_shp@data$m5median <- m5median[,1]
+kc_shp@data$m5lower <- m5lower[,1]
+kc_shp@data$m5upper <- m5upper[,1]
+kc_shp@data$m5post95wid <- kc_shp@data$m5upper - kc_shp@data$m5lower
+
+
+
+#make sure shp has idx column
 kc_shp@data$idx <- idx
 
 #### E. Model Diagnostics -----------------------------------------------------
@@ -537,30 +627,45 @@ rmse <- function(error)
 m0mlik <- m0$mlik[1]
 m1mlik <- m1$mlik[1]
 m2mlik <- m2$mlik[1]
+m3mlik <- m3$mlik[1]
+m4mlik <- m4$mlik[1]
+m5mlik <- m5$mlik[1]
 
 #DIC
 m0DIC <- m0$dic$dic
 m1DIC <- m1$dic$dic
 m2DIC <- m2$dic$dic
+m3DIC <- m3$dic$dic
+m4DIC <- m4$dic$dic
+m5DIC <- m5$dic$dic
 
 #WAIC
 m0WAIC <- m0$waic$waic
 m1WAIC <- m1$waic$waic
 m2WAIC <- m2$waic$waic
+m3WAIC <- m3$waic$waic
+m4WAIC <- m4$waic$waic
+m5WAIC <- m5$waic$waic
 
 #RMSE
 m0RMSE <- rmse(kc_shp@data$nListings-kc_shp@data$m0median)
 m1RMSE <- rmse(kc_shp@data$nListings-kc_shp@data$m1median)
 m2RMSE <- rmse(kc_shp@data$nListings-kc_shp@data$m2median)
+m3RMSE <- rmse(kc_shp@data$nListings-kc_shp@data$m3median)
+m4RMSE <- rmse(kc_shp@data$nListings-kc_shp@data$m4median)
+m5RMSE <- rmse(kc_shp@data$nListings-kc_shp@data$m5median)
 
 #compile df
 mfit <- data.frame(
-  Model = c("GLM", "Non-Spatial RE", "Spatial RE"),
-  MLik = c(m0mlik, m1mlik, m2mlik),
-  RMSE = c(m0RMSE, m1RMSE, m2RMSE),
-  DIC = c(m0DIC, m1DIC, m2DIC),
-  WAIC = c(m0WAIC, m1WAIC, m2WAIC)
+  Distribution = c("Neg. Binomial", "Neg. Binomial", "Neg. Binomial", "Poisson", "Poisson", "Poisson"),
+  Model = c("GLM", "Non-Spatial RE", "Spatial RE", "GLM", "Non-Spatial RE", "Spatial RE"),
+  MLik = c(m0mlik, m1mlik, m2mlik, m3mlik, m4mlik, m5mlik),
+  RMSE = c(m0RMSE, m1RMSE, m2RMSE, m3RMSE, m4RMSE, m5RMSE),
+  DIC = c(m0DIC, m1DIC, m2DIC, m3DIC, m4DIC, m5DIC),
+  WAIC = c(m0WAIC, m1WAIC, m2WAIC, m3WAIC, m4WAIC, m5WAIC)
 )
+
+mfit[,3:6] <- round(mfit[,3:6], 2)
 
 #save mfit to files
 print(xtable::xtable(mfit), type = "html", "./output/modelFit.html")
@@ -574,8 +679,7 @@ kc_f <- inner_join(kc_f, kc_shp@data, "id")
 #labels for coefINLA
 var_labs <- c(
   `(Intercept)`="Intercept",
-  `log(tpop)`="log(Total Pop)",
-  nHU="N HU",
+  `log(nHU)`="log(N HU)",
   pforrent="Prp HU For Rent",
   pblt14lat="Prp HU Blt >2014",
   pownocc="Prp HU Own-Occ",
@@ -596,27 +700,48 @@ var_labeller <- labeller(
 
 #coefINLA ropeladder-like plots
 coefINLA(m0, exp = T, labeller = var_labeller) + 
-  labs(title = "GLM Posterior Distributions",
+  labs(title = "NB GLM Posterior Distributions",
        subtitle = "with 95% interval") +
   xlab("\nExponentiated Coefficients") +
   ggsave(filename = "./output/graphics/coefM0.pdf",
-         width = 6, height = 6)
+         width = 6, height = 4)
 
 coefINLA(m1, exp = T, labeller = var_labeller) + 
-  labs(title = "Non-Spatial RE Posterior Distributions",
+  labs(title = "NB Non-Spatial RE Posterior Distributions",
        subtitle = "with 95% interval") +
   xlab("\nExponentiated Coefficients") +
 ggsave(filename = "./output/graphics/coefM1.pdf",
-       width = 6, height = 6)
+       width = 6, height = 4)
 
 coefINLA(m2, exp = T, labeller = var_labeller) + 
-  labs(title = "Spatial RE Posterior Distributions",
+  labs(title = "NB Spatial RE Posterior Distributions",
        subtitle = "with 95% interval") +
   xlab("\nExponentiated Coefficients") +
 ggsave(filename = "./output/graphics/coefM2.pdf",
        width = 6, height = 4)
 
+coefINLA(m3, exp = T, labeller = var_labeller) + 
+  labs(title = "Poisson GLM Posterior Distributions",
+       subtitle = "with 95% interval") +
+  xlab("\nExponentiated Coefficients") +
+  ggsave(filename = "./output/graphics/coefM3.pdf",
+         width = 6, height = 4)
 
+coefINLA(m4, exp = T, labeller = var_labeller) + 
+  labs(title = "Poisson Non-Spatial RE Posterior Distributions",
+       subtitle = "with 95% interval") +
+  xlab("\nExponentiated Coefficients") +
+  coord_cartesian(xlim=c(-15, 15)) +
+  ggsave(filename = "./output/graphics/coefM4.pdf",
+         width = 6, height = 4)
+
+coefINLA(m5, exp = T, labeller = var_labeller) + 
+  labs(title = "Poisson Spatial RE Posterior Distributions",
+       subtitle = "with 95% interval") +
+  xlab("\nExponentiated Coefficients") +
+  coord_cartesian(xlim=c(-15, 15)) +
+  ggsave(filename = "./output/graphics/coefM5.pdf",
+         width = 6, height = 4)
 
 ### Spatial visualizations for models
 
@@ -870,6 +995,23 @@ ggplot(kc_f, aes(x = long, y = lat, group = group, fill = m2SE)) +
   ggsave(filename = "./output/maps/fittedM2SE.pdf",
          dpi = 300)
 
+#median spatial effect
+ggplot(kc_f, aes(x = long, y = lat, group = group, fill = m2SE)) +
+  geom_polygon(color = "white", lwd = .15) +
+  scale_fill_viridis_c(name = "Median Spatial Effect",
+                       direction = 1, na.value = "grey80") + 
+  coord_map() +
+  theme_minimal() +
+  theme(axis.ticks.y = element_blank(),axis.text.y = element_blank(), # get rid of x ticks/text
+        axis.ticks.x = element_blank(),axis.text.x = element_blank(), # get rid of y ticks/text
+        panel.background = element_blank(),
+        panel.grid = element_blank()) +
+  xlab("") +
+  ylab("") +
+  ggsave(filename = "./output/maps/fittedM2SE.pdf",
+         dpi = 300)
+
+
 #model 2 residual
 ggplot(kc_f, aes(x = long, y = lat, group = group, fill = nListings - m2median)) +
   geom_polygon(color = "grey80", lwd = .15) +
@@ -887,7 +1029,26 @@ ggplot(kc_f, aes(x = long, y = lat, group = group, fill = nListings - m2median))
 
 
 
-
+#model 5 Spatial Effect
+ggplot(kc_f, aes(x = long, y = lat, group = group, fill = m5SE, label = GISJOIN)) +
+  geom_polygon(color = "white", lwd = .15) +
+  scale_fill_viridis_c(name = "Median Spatial\nRandom Effect", 
+                       limits = c(0, 4),
+                       breaks = c(0, 1, 2, 3, 4),
+                       direction = 1, na.value = "grey80") + 
+  coord_map() +
+  theme_minimal() +
+  theme(axis.ticks.y = element_blank(),axis.text.y = element_blank(), # get rid of x ticks/text
+        axis.ticks.x = element_blank(),axis.text.x = element_blank(), # get rid of y ticks/text
+        panel.background = element_blank(),
+        panel.grid = element_blank(),
+        legend.position = "right",
+        legend.title = element_text(size = 10),
+        legend.text = element_text(size = 8)) +
+  xlab("") +
+  ylab("") +
+  ggsave(filename = "./output/maps/fittedM5SE.pdf",
+         dpi = 300, width = 6, height = 4)
 
 
 

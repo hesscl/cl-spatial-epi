@@ -72,6 +72,7 @@ cal <- computeCal(kc_cl) %>%
          yearmon = as.yearmon(fullDates),
          year = year(fullDates),
          week = as.numeric(format(fullDates,"%W")))
+sum(is.na(cal$n))/nrow(cal)
 
 cal$weekdayf <- factor(cal$weekdayf, levels = rev(levels(cal$weekdayf)[c(2,6,7,5,1,3,4)]))
 
