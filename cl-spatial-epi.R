@@ -38,27 +38,22 @@ if(file.exists("../data/cl/craigslistDB.sqlite")){
   
   #compute tract aggregates for CL listing count
   tractCl <- cl %>%
+    collect %>% #bring db query into memory
     filter(!is.na(GISJOIN), !is.na(cleanBeds), !is.na(cleanRent), !is.na(cleanSqft)) %>% #only listings with valid Bed/Rent
     filter(GISJOIN %in% kc_shp@data$GISJOIN) %>% #filter to KC only (db has metro area)
     dplyr::select(listingMoYr, GISJOIN, seattle, matchAddress, matchAddress2, matchType, cleanBeds, cleanRent) %>% #SELECT these columns
-    collect %>% #bring db query into memory
     mutate(listingMoYr = as.Date(listingMoYr)) %>%
     filter(listingMoYr < "2018-03-12") %>% #everything up till march 12, 2018  (i.e cut off new data)
     filter(!grepl("Google", matchType)) %>% #no Google geocodes, only Smartystreets (precise to Zip9)
-    distinct(matchAddress, matchAddress2, cleanBeds, cleanRent, cleanSqft, .keep_all = T) %>% #dedupe unique address-bed-rent combos
+    distinct(cleanBeds, cleanRent, cleanSqft, matchAddress, matchAddress2, .keep_all = T) %>% #dedupe unique address-bed-rent combos
     group_by(GISJOIN) %>% #group listings by tract
     summarize(nListings = n(),
-              medCL = median(cleanRent),
-              med0B = median(cleanRent[cleanBeds==0]),
-              med1B = median(cleanRent[cleanBeds==1]),
-              med2B = median(cleanRent[cleanBeds==2]),
-              med3Plus = median(cleanRent[cleanBeds>2]),
-              seattle = max(seattle))
+              seattle = ifelse(is.na(max(seattle)),0, max(seattle)))
   dbDisconnect(DB)
   write_csv(tractCl, "./input/tractCl.csv")
   
 } else{
-  tract <- read_csv("./input/tractCl.csv")
+  tractCl <- read_csv("./input/tractCl.csv")
 }
 
 

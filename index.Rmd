@@ -57,12 +57,7 @@ if(file.exists("../data/cl/craigslistDB.sqlite")){
     distinct(matchAddress, matchAddress2, cleanBeds, cleanRent, cleanSqft, .keep_all = T) %>% #dedupe unique address-bed-rent combos
     group_by(GISJOIN) %>% #group listings by tract
     summarize(nListings = n(),
-              medCL = median(cleanRent),
-              med0B = median(cleanRent[cleanBeds==0]),
-              med1B = median(cleanRent[cleanBeds==1]),
-              med2B = median(cleanRent[cleanBeds==2]),
-              med3Plus = median(cleanRent[cleanBeds>2]),
-              seattle = max(seattle))
+              seattle = ifelse(is.na(max(seattle)),0, max(seattle)))
   dbDisconnect(DB)
   write_csv(tractCl, "./input/tractCl.csv")
   

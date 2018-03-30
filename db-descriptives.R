@@ -32,12 +32,12 @@ kc_shp <- readOGR(dsn = "./input/KCTract2010/KCTract2010.shp",
 kc_cl <- cl %>%
   filter(!is.na(GISJOIN), !is.na(cleanBeds), !is.na(cleanRent), !is.na(cleanSqft)) %>% #only listings with valid Bed/Rent
   filter(GISJOIN %in% kc_shp@data$GISJOIN) %>% #filter to KC only (db has metro area)
-  dplyr::select(listingMoYr, listingDate, GISJOIN, seattle, matchAddress, matchAddress2, matchType, cleanBeds, cleanRent) %>% #SELECT these columns
+  dplyr::select(listingMoYr, listingDate, GISJOIN, seattle, matchAddress, matchAddress2, matchType, cleanBeds, cleanRent, cleanSqft) %>% #SELECT these columns
   collect %>% #bring db query into memory
   mutate(listingMoYr = as.Date(listingMoYr),
          listingDate = as.Date(listingDate)) %>%
-  filter(listingMoYr < "2018-03-12") %>% #everything up till march 12, 2018  (i.e cut off new data)
-  filter(!grepl("Google", matchType)) %>% #no Google geocodes, only Smartystreets (precise to Zip9)
+  filter(listingMoYr >= "2017-03-01") %>% #everything up till march 12, 2018  (i.e cut off new data)
+  #filter(!grepl("Google", matchType)) %>% #no Google geocodes, only Smartystreets (precise to Zip9)
   distinct(matchAddress, matchAddress2, cleanBeds, cleanRent, cleanSqft, .keep_all = T)
 dbDisconnect(DB)
 
