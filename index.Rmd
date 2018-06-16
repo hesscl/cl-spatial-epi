@@ -59,10 +59,9 @@ if(file.exists("../data/cl/craigslistDB.sqlite")){
     summarize(nListings = n(),
               seattle = ifelse(is.na(max(seattle)),0, max(seattle)))
   dbDisconnect(DB)
-  write_csv(tractCl, "./input/tractCl.csv")
   
 } else{
-  tract <- read_csv("./input/tractCl.csv")
+  stop("Input data needed")
 }
 
 #merge tables together, allow missing values for tracts with no listings (i.e. no value in tract)

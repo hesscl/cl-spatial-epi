@@ -50,10 +50,9 @@ if(file.exists("../data/cl/craigslistDB.sqlite")){
     summarize(nListings = n(),
               seattle = ifelse(is.na(max(seattle)),0, max(seattle)))
   dbDisconnect(DB)
-  write_csv(tractCl, "./input/tractCl.csv")
   
 } else{
-  tractCl <- read_csv("./input/tractCl.csv")
+  stop("Input data needed")
 }
 
 
