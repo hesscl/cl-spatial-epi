@@ -30,17 +30,19 @@ kc_shp <- readOGR(dsn = "./input/KCTract2010/KCTract2010.shp",
 
 #compute tract aggregates for CL listing count
 kc_cl <- cl %>%
-  filter(!is.na(GISJOIN), !is.na(cleanBeds), !is.na(cleanRent), !is.na(cleanSqft)) %>% #only listings with valid Bed/Rent
+  filter(!is.na(GISJOIN), !is.na(cleanBeds), !is.na(cleanRent), !is.na(cleanSqft), seattle == 1) %>% #only listings with valid Bed/Rent
   filter(GISJOIN %in% kc_shp@data$GISJOIN) %>% #filter to KC only (db has metro area)
   dplyr::select(listingMoYr, listingDate, GISJOIN, seattle, matchAddress, matchAddress2, matchType, cleanBeds, cleanRent, cleanSqft) %>% #SELECT these columns
   collect %>% #bring db query into memory
   mutate(listingMoYr = as.Date(listingMoYr),
          listingDate = as.Date(listingDate)) %>%
-  filter(listingMoYr >= "2017-03-01") %>% #everything up till march 12, 2018  (i.e cut off new data)
+  #filter(listingMoYr >= "2017-03-01") %>% #everything up till march 12, 2018  (i.e cut off new data)
   #filter(!grepl("Google", matchType)) %>% #no Google geocodes, only Smartystreets (precise to Zip9)
   distinct(matchAddress, matchAddress2, cleanBeds, cleanRent, cleanSqft, .keep_all = T)
 dbDisconnect(DB)
 
+kc_cl <- kc_cl %>%
+  filter(listingMoYr >= "2017-01-01")
 
 glimpse(kc_cl)
 length(unique(kc_cl$listingDate))
@@ -79,7 +81,7 @@ cal$weekdayf <- factor(cal$weekdayf, levels = rev(levels(cal$weekdayf)[c(2,6,7,5
 #credit to https://rpubs.com/haj3/calheatmap for code and idea
 cal<-plyr::ddply(cal,plyr::.(yearmon),transform,monthweek=1+week-min(week))
 
-
+#make the heatmap
 ggplot(cal, aes(x = monthweek, y = weekdayf, fill = n)) +
   scale_fill_viridis_c(na.value = "grey80", direction = 1) +
   scale_x_continuous(breaks = c(1, 2, 3, 4)) +
